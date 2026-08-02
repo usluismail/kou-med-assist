@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react-native";
 import { colors } from "@/lib/theme";
+import { useAuth } from "@/lib/api/AuthContext";
 
 type Role = "student" | "faculty";
 
@@ -102,19 +103,41 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
 function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
   const student = role === "student";
   const router = useRouter();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const valid = identifier.trim().length > 2 && password.length >= 4;
 
-  const submit = () => {
+  const fillDemo = () => {
+    if (student) {
+      setIdentifier("ahmet.yilmaz@kocaeli.edu.tr");
+      setPassword("ogrenci123");
+    } else {
+      setIdentifier("ayse.kaya@kocaeli.edu.tr");
+      setPassword("hoca123");
+    }
+  };
+
+  const submit = async () => {
     if (!valid || loading) return;
     setLoading(true);
-    setTimeout(() => {
+    setError(null);
+    try {
+      await login({
+        email: identifier.trim(),
+        password,
+        role,
+      });
       router.push(student ? "/ogrenci" : "/akademisyen");
-    }, 900);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Giriş başarısız");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -128,7 +151,9 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
             {student ? "Öğrenci Portalı" : "Akademisyen Portalı"}
           </Text>
           <Text style={styles.sheetSub}>
-            {student ? "Öğrenci numaranız ile giriş yapın" : "Kurumsal e-posta ile giriş yapın"}
+            {student
+              ? "Öğrenci no veya e-posta ile giriş yapın"
+              : "Kurumsal e-posta ile giriş yapın"}
           </Text>
         </View>
       </View>
@@ -136,11 +161,11 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
       <View style={{ gap: 12, marginTop: 20 }}>
         <Field
           icon={student ? UserRound : Mail}
-          label={student ? "Öğrenci No" : "Kurumsal E-Posta"}
-          placeholder={student ? "2026123456" : "ad.soyad@kocaeli.edu.tr"}
+          label={student ? "Öğrenci No / E-Posta" : "Kurumsal E-Posta"}
+          placeholder={student ? "190101044" : "ad.soyad@kocaeli.edu.tr"}
           value={identifier}
           onChange={setIdentifier}
-          keyboardType={student ? "number-pad" : "email-address"}
+          keyboardType={student ? "default" : "email-address"}
         />
         <Field
           icon={Lock}
@@ -160,6 +185,14 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
           }
         />
       </View>
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <Pressable onPress={fillDemo} style={styles.demoBtn}>
+        <Text style={styles.demoBtnText}>
+          Demo hesabı doldur (geliştirme)
+        </Text>
+      </Pressable>
 
       <View style={styles.rowBetween}>
         <Pressable
@@ -333,4 +366,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   submitText: { color: colors.white, fontSize: 14, fontWeight: "700" },
+  errorText: {
+    marginTop: 12,
+    fontSize: 13,
+    color: "#DC2626",
+    fontWeight: "600",
+  },
+  demoBtn: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+  },
+  demoBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.clinical,
+    textDecorationLine: "underline",
+  },
 });

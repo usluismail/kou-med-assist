@@ -28,23 +28,32 @@ import {
 } from "lucide-react-native";
 import { BottomSheet } from "./BottomSheet";
 import { QrCode } from "./QrCode";
+import { EmptyBlock, ErrorBlock, LoadingBlock } from "./StateViews";
+import { useAuth } from "@/lib/api/AuthContext";
 import {
-  COLLEAGUES,
-  LOG_ENTRIES,
-  PROCEDURES,
-  SHIFTS,
-  STUDENT,
-  SUPERVISORS,
-} from "@/lib/med-data";
+  useColleagues,
+  useLogs,
+  useProcedures,
+  useShifts,
+  useStudentDashboard,
+  useSupervisors,
+} from "@/lib/api/hooks";
+import { createLog, requestShiftSwap } from "@/lib/api";
+import { formatLogDateTr, logRoleLabel, logStatusLabel } from "@/lib/api/labels";
+import type { LogEntry, Shift } from "@/lib/api/types";
 import { colors } from "@/lib/theme";
 
 type Tab = "home" | "logbook" | "shifts" | "osce" | "profile";
 
-const doneTotal = 42;
+export type QrInfo = {
+  payload: string;
+  procedureName: string;
+  encounterId: string;
+};
 
 export function StudentApp() {
   const [tab, setTab] = useState<Tab>("home");
-  const [qrOpen, setQrOpen] = useState(false);
+  const [qrInfo, setQrInfo] = useState<QrInfo | null>(null);
   const [swapOpen, setSwapOpen] = useState(false);
 
   return (
@@ -57,7 +66,12 @@ export function StudentApp() {
         {tab === "home" && (
           <Dashboard onSwap={() => setSwapOpen(true)} onLog={() => setTab("logbook")} />
         )}
-        {tab === "logbook" && <Logbook onQr={() => setQrOpen(true)} />}
+        {tab === "logbook" && (
+          <Logbook
+            onQrCreated={(info) => setQrInfo(info)}
+            initialTab="list"
+          />
+        )}
         {tab === "shifts" && <ShiftsScreen onSwap={() => setSwapOpen(true)} />}
         {tab === "osce" && <OsceStudent />}
         {tab === "profile" && <Profile />}
@@ -103,7 +117,11 @@ export function StudentApp() {
         })}
       </View>
 
-      <QrSheet open={qrOpen} onClose={() => setQrOpen(false)} />
+      <QrSheet
+        open={!!qrInfo}
+        info={qrInfo}
+        onClose={() => setQrInfo(null)}
+      />
       <SwapSheet open={swapOpen} onClose={() => setSwapOpen(false)} />
     </View>
   );
@@ -167,7 +185,17 @@ function Dashboard({
   onSwap: () => void;
   onLog: () => void;
 }) {
-  const pct = 70;
+  const { data, loading, error, reload } = useStudentDashboard();
+  const procedures = useProcedures();
+
+  if (loading && !data) return <LoadingBlock label="Dashboard yükleniyor…" />;
+  if (error && !data) return <ErrorBlock message={error} onRetry={reload} />;
+  if (!data) return <EmptyBlock message="Dashboard verisi yok" />;
+
+  const pct = data.ucepProgress.percent;
+  const { done, total } = data.ucepProgress;
+  const procs = procedures.data ?? [];
+  const shift = data.upcomingShift;
 
   return (
     <View style={styles.screenPad}>
@@ -175,21 +203,21 @@ function Dashboard({
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.avatarSm}>
-              <Text style={styles.avatarSmText}>{STUDENT.initials}</Text>
+              <Text style={styles.avatarSmText}>{data.student.initials}</Text>
             </View>
             <View style={styles.headerTextWrap}>
               <Text style={styles.headerName} numberOfLines={1}>
-                {STUDENT.name}
+                {data.student.name}
               </Text>
               <Text style={styles.headerSub} numberOfLines={1}>
-                Dönem 6 - Acil Tıp Stajı
+                {data.rotation}
               </Text>
             </View>
           </View>
           <Pressable style={styles.bellBtn}>
             <Bell size={20} color={colors.white} />
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>3</Text>
+              <Text style={styles.badgeText}>{data.logSummary.pending}</Text>
             </View>
           </Pressable>
         </View>
@@ -207,15 +235,19 @@ function Dashboard({
             >
               <View style={styles.ringCenter}>
                 <Text style={styles.ringPct}>%{pct}</Text>
-                <Text style={styles.ringSub}>{doneTotal}/60</Text>
+                <Text style={styles.ringSub}>
+                  {done}/{total}
+                </Text>
               </View>
             </ProgressRing>
             <View style={styles.progressInfo}>
               <Text style={styles.kicker}>U-ÇEP İlerlemesi</Text>
-              <Text style={styles.progressTitle}>42/60 girişim tamamlandı</Text>
+              <Text style={styles.progressTitle}>
+                {done}/{total} girişim tamamlandı
+              </Text>
               <View style={styles.procList}>
-                {PROCEDURES.slice(0, 3).map((p) => (
-                  <View key={p.name} style={styles.procItem}>
+                {procs.slice(0, 3).map((p) => (
+                  <View key={p.id} style={styles.procItem}>
                     <Text style={styles.procName} numberOfLines={1}>
                       {p.name}
                     </Text>
@@ -238,36 +270,27 @@ function Dashboard({
           </View>
         </View>
 
-        <View style={[styles.card, styles.warningCard]}>
-          <Text style={styles.warningKicker}>Yaklaşan Nöbet</Text>
-          <Text style={styles.cardTitle}>Bu Akşam 16:00 - 08:00</Text>
-          <Text style={styles.cardSub}>Acil Servis · Kırmızı Alan</Text>
-          <Pressable onPress={onSwap} style={styles.swapBtn}>
-            <Repeat2 size={16} color={colors.clinical} />
-            <Text style={styles.swapBtnText}>Takas İstet</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.rowBetween}>
-            <View style={styles.flex1}>
-              <Text style={styles.infoKicker}>Komite Sınavı</Text>
-              <Text style={styles.cardTitle} numberOfLines={1}>
-                Acil Tıp OSCE Sınavı
-              </Text>
-              <Text style={styles.cardSub}>28 Ağustos 2026 · 09:00</Text>
-            </View>
-            <View style={styles.infoPill}>
-              <Text style={styles.infoPillText}>23 Gün Kaldı</Text>
-            </View>
+        {shift ? (
+          <View style={[styles.card, styles.warningCard]}>
+            <Text style={styles.warningKicker}>Yaklaşan Nöbet</Text>
+            <Text style={styles.cardTitle}>{shift.time}</Text>
+            <Text style={styles.cardSub}>
+              {shift.label} · {shift.area}
+            </Text>
+            <Pressable onPress={onSwap} style={styles.swapBtn}>
+              <Repeat2 size={16} color={colors.clinical} />
+              <Text style={styles.swapBtnText}>Takas İstet</Text>
+            </Pressable>
           </View>
-        </View>
+        ) : null}
 
         <Pressable onPress={onLog} style={styles.card}>
           <View style={styles.rowBetween}>
             <View>
               <Text style={styles.cardTitle}>Son Karne Kayıtları</Text>
-              <Text style={styles.cardSub}>1 kayıt onay bekliyor</Text>
+              <Text style={styles.cardSub}>
+                {data.logSummary.pending} kayıt onay bekliyor
+              </Text>
             </View>
             <ChevronRight size={16} color={colors.mutedForeground} />
           </View>
@@ -277,22 +300,108 @@ function Dashboard({
   );
 }
 
-function Logbook({ onQr }: { onQr: () => void }) {
+function Logbook({
+  onQrCreated,
+}: {
+  onQrCreated: (info: QrInfo) => void;
+  initialTab?: "list" | "new";
+}) {
+  const { user, token } = useAuth();
+  const logs = useLogs();
+  const procedures = useProcedures();
+  const supervisors = useSupervisors();
   const [tab, setTab] = useState<"list" | "new">("list");
-  const [proc, setProc] = useState("");
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [procId, setProcId] = useState<string | null>(null);
+  const [procQuery, setProcQuery] = useState("");
+  const [encounterId, setEncounterId] = useState("ENC-2026-");
   const [age, setAge] = useState("Yetişkin");
   const [sex, setSex] = useState("Kadın");
-  const [role, setRole] = useState("Bizzat Yaptım");
-  const [supervisor, setSupervisor] = useState(SUPERVISORS[0]);
-  const suggestions = PROCEDURES.filter(
-    (p) => proc.length > 1 && p.name.toLowerCase().includes(proc.toLowerCase()),
+  const [roleLabel, setRoleLabel] = useState("Bizzat Yaptım");
+  const [supervisorId, setSupervisorId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const procList = procedures.data ?? [];
+  const selectedProc = procList.find((p) => p.id === procId) ?? null;
+  const supervisorList = supervisors.data ?? [];
+
+  useEffect(() => {
+    if (!supervisorId && supervisorList[0]) setSupervisorId(supervisorList[0].id);
+  }, [supervisorId, supervisorList]);
+
+  const suggestions = procList.filter(
+    (p) =>
+      procQuery.length > 1 &&
+      p.name.toLowerCase().includes(procQuery.toLowerCase()),
   );
+
+  const ageToApi = (v: string) =>
+    v === "Pediatrik" ? "child" : v === "Geriatrik" ? "geriatric" : "adult";
+  const sexToApi = (v: string) => (v === "Erkek" ? "m" : "f");
+  const roleToApi = (v: string) =>
+    v === "Gözlemledim" ? "observed" : v === "Yardım Ettim" ? "assisted" : "performed";
+
+  const resetForm = () => {
+    setStep(1);
+    setProcId(null);
+    setProcQuery("");
+    setEncounterId("ENC-2026-");
+    setAge("Yetişkin");
+    setSex("Kadın");
+    setRoleLabel("Bizzat Yaptım");
+    setFormError(null);
+  };
+
+  const submit = async (method: "push" | "qr") => {
+    if (!token || !procId || !supervisorId) return;
+    const enc = encounterId.trim();
+    if (enc.length < 5) {
+      setFormError("Encounter ID girin (hasta adı / TCKN yok)");
+      return;
+    }
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const created = await createLog(token, {
+        procedureId: procId,
+        encounterId: enc,
+        ageGroup: ageToApi(age) as "child" | "adult" | "geriatric",
+        sex: sexToApi(sex) as "f" | "m",
+        role: roleToApi(roleLabel) as "observed" | "assisted" | "performed",
+        supervisorId,
+        approvalMethod: method,
+      });
+      logs.reload();
+      if (method === "qr" && created.qrPayload) {
+        onQrCreated({
+          payload: created.qrPayload,
+          procedureName: created.procedureName,
+          encounterId: created.encounterId,
+        });
+      }
+      resetForm();
+      setTab("list");
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Kayıt gönderilemedi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const statusColor = (status: LogEntry["status"]) => {
+    if (status === "approved") return colors.success;
+    if (status === "revision_requested") return colors.clinical;
+    return colors.warning;
+  };
 
   return (
     <View>
       <View style={styles.clinicalHeader}>
         <Text style={styles.screenTitle}>Dijital Klinik Karne</Text>
-        <Text style={styles.headerSub}>{STUDENT.faculty}</Text>
+        <Text style={styles.headerSub}>
+          {user?.faculty ?? "Kocaeli Üniversitesi Tıp Fakültesi"}
+        </Text>
         <View style={styles.segmentWrap}>
           {(
             [
@@ -302,7 +411,10 @@ function Logbook({ onQr }: { onQr: () => void }) {
           ).map(([k, l]) => (
             <Pressable
               key={k}
-              onPress={() => setTab(k)}
+              onPress={() => {
+                setTab(k);
+                if (k === "new") setStep(1);
+              }}
               style={[styles.segmentBtn, tab === k && styles.segmentBtnActive]}
             >
               <Text
@@ -320,143 +432,239 @@ function Logbook({ onQr }: { onQr: () => void }) {
 
       {tab === "list" ? (
         <View style={styles.listPad}>
-          {LOG_ENTRIES.map((e) => (
+          {logs.loading && !logs.data ? (
+            <LoadingBlock label="Karneler yükleniyor…" />
+          ) : null}
+          {logs.error && !logs.data ? (
+            <ErrorBlock message={logs.error} onRetry={logs.reload} />
+          ) : null}
+          {logs.data && logs.data.length === 0 ? (
+            <EmptyBlock message="Henüz karne kaydı yok" />
+          ) : null}
+          {(logs.data ?? []).map((e: LogEntry) => (
             <View key={e.id} style={styles.card}>
               <View style={styles.rowBetweenStart}>
-                <Text style={[styles.cardTitle, styles.flex1]}>{e.proc}</Text>
+                <Text style={[styles.cardTitle, styles.flex1]}>
+                  {e.procedureName}
+                </Text>
                 <View
                   style={[
                     styles.statusPill,
-                    e.status === "onaylandi"
+                    e.status === "approved"
                       ? styles.statusApproved
                       : styles.statusPending,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color:
-                          e.status === "onaylandi" ? colors.success : colors.warning,
-                      },
-                    ]}
-                  >
-                    {e.status === "onaylandi" ? "ONAYLANDI" : "BEKLİYOR"}
+                  <Text style={[styles.statusText, { color: statusColor(e.status) }]}>
+                    {logStatusLabel[e.status]}
                   </Text>
                 </View>
               </View>
               <Text style={styles.meta}>
-                {e.date} · {e.role}
+                {formatLogDateTr(e.date)} · {logRoleLabel[e.role]}
               </Text>
               <Text style={styles.meta}>
-                Protokol: {e.id} · {e.supervisor}
+                Protokol: {e.encounterId} · {e.supervisorName}
               </Text>
             </View>
           ))}
         </View>
       ) : (
         <View style={styles.formPad}>
-          <Field label="Girişim / Prosedür">
-            <View style={styles.searchWrap}>
-              <View style={styles.searchIcon}>
-                <Search size={16} color={colors.mutedForeground} />
-              </View>
-              <TextInput
-                value={proc}
-                onChangeText={setProc}
-                placeholder="Damar Yolu Açma / İntravenöz Kanül"
-                placeholderTextColor={colors.mutedForeground}
-                style={styles.input}
-              />
-            </View>
-            {suggestions.length > 0 && (
-              <View style={styles.suggestions}>
-                {suggestions.map((s) => (
-                  <Pressable
-                    key={s.name}
-                    onPress={() => setProc(s.name)}
-                    style={styles.suggestionItem}
-                  >
-                    <Text style={styles.suggestionText}>{s.name}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </Field>
+          <Text style={styles.meta}>Adım {step}/3</Text>
 
-          <Field label="Encounter ID (HBYS Protokol No)">
-            <View style={styles.rowGap}>
-              <TextInput
-                defaultValue="ENC-2026-"
-                style={[styles.inputPlain, styles.flex1]}
-              />
-              <Pressable style={styles.barcodeBtn}>
-                <ScanBarcode size={16} color={colors.white} />
-                <Text style={styles.barcodeText}>Barkod</Text>
+          {step === 1 && (
+            <>
+              <Field label="1 · Prosedür seç">
+                <View style={styles.searchWrap}>
+                  <View style={styles.searchIcon}>
+                    <Search size={16} color={colors.mutedForeground} />
+                  </View>
+                  <TextInput
+                    value={procQuery}
+                    onChangeText={setProcQuery}
+                    placeholder="Ara veya listeden seç"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={styles.input}
+                  />
+                </View>
+                {selectedProc ? (
+                  <Text style={[styles.meta, { marginTop: 8 }]}>
+                    Seçili: {selectedProc.name}
+                  </Text>
+                ) : null}
+                <View style={{ marginTop: 8, gap: 6 }}>
+                  {(suggestions.length ? suggestions : procList).map((s) => (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => {
+                        setProcId(s.id);
+                        setProcQuery(s.name);
+                      }}
+                      style={[
+                        styles.suggestionItem,
+                        procId === s.id && { backgroundColor: colors.kou + "22" },
+                      ]}
+                    >
+                      <Text style={styles.suggestionText}>{s.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </Field>
+              <Pressable
+                disabled={!procId}
+                onPress={() => setStep(2)}
+                style={[styles.primaryAction, !procId && { opacity: 0.5 }]}
+              >
+                <Text style={styles.primaryActionText}>Devam</Text>
               </Pressable>
-            </View>
-          </Field>
+            </>
+          )}
 
-          <Field label="Hasta Demografisi">
-            <Segmented
-              options={["Pediatrik", "Yetişkin", "Geriatrik"]}
-              value={age}
-              onChange={setAge}
-            />
-            <View style={{ marginTop: 8 }}>
-              <Segmented options={["Kadın", "Erkek"]} value={sex} onChange={setSex} />
-            </View>
-          </Field>
+          {step === 2 && (
+            <>
+              <Field label="Encounter ID (HBYS Protokol No)">
+                <View style={styles.rowGap}>
+                  <TextInput
+                    value={encounterId}
+                    onChangeText={setEncounterId}
+                    autoCapitalize="characters"
+                    style={[styles.inputPlain, styles.flex1]}
+                  />
+                  <Pressable style={styles.barcodeBtn}>
+                    <ScanBarcode size={16} color={colors.white} />
+                    <Text style={styles.barcodeText}>Barkod</Text>
+                  </Pressable>
+                </View>
+                <Text style={[styles.meta, { marginTop: 6 }]}>
+                  Hasta adı / TCKN girilmez (KVKK)
+                </Text>
+              </Field>
 
-          <Field label="Öğrenci Rolü">
-            <View style={styles.chipRow}>
-              {["Gözlemledim", "Yardım Ettim", "Bizzat Yaptım"].map((r) => (
+              <Field label="Hasta Demografisi">
+                <Segmented
+                  options={["Pediatrik", "Yetişkin", "Geriatrik"]}
+                  value={age}
+                  onChange={setAge}
+                />
+                <View style={{ marginTop: 8 }}>
+                  <Segmented
+                    options={["Kadın", "Erkek"]}
+                    value={sex}
+                    onChange={setSex}
+                  />
+                </View>
+              </Field>
+
+              <Field label="Öğrenci Rolü">
+                <View style={styles.chipRow}>
+                  {["Gözlemledim", "Yardım Ettim", "Bizzat Yaptım"].map((r) => (
+                    <Pressable
+                      key={r}
+                      onPress={() => setRoleLabel(r)}
+                      style={[styles.chip, roleLabel === r && styles.chipActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          roleLabel === r && styles.chipTextActive,
+                        ]}
+                      >
+                        {r}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </Field>
+
+              <Field label="Onaylayacak Öğretim Üyesi">
+                <SelectField
+                  value={
+                    supervisorList.find((s) => s.id === supervisorId)?.name ?? "—"
+                  }
+                  options={supervisorList.map((s) => s.name)}
+                  onChange={(name) => {
+                    const s = supervisorList.find((x) => x.name === name);
+                    if (s) setSupervisorId(s.id);
+                  }}
+                />
+              </Field>
+
+              <View style={styles.formActions}>
                 <Pressable
-                  key={r}
-                  onPress={() => setRole(r)}
-                  style={[styles.chip, role === r && styles.chipActive]}
+                  onPress={() => setStep(1)}
+                  style={styles.secondaryAction}
                 >
-                  <Text
-                    style={[styles.chipText, role === r && styles.chipTextActive]}
-                  >
-                    {r}
+                  <Text style={styles.secondaryActionText}>Geri</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setStep(3)}
+                  style={styles.primaryAction}
+                >
+                  <Text style={styles.primaryActionText}>Onay yöntemine geç</Text>
+                </Pressable>
+              </View>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <Text style={styles.cardTitle}>{selectedProc?.name}</Text>
+              <Text style={styles.meta}>
+                {encounterId} · {roleLabel}
+              </Text>
+              {formError ? (
+                <Text style={{ color: "#DC2626", marginTop: 8, fontWeight: "600" }}>
+                  {formError}
+                </Text>
+              ) : null}
+              <View style={[styles.formActions, { marginTop: 16 }]}>
+                <Pressable
+                  disabled={submitting}
+                  onPress={() => submit("push")}
+                  style={[styles.secondaryAction, submitting && { opacity: 0.5 }]}
+                >
+                  <Text style={styles.secondaryActionText}>
+                    {submitting ? "Gönderiliyor…" : "Push ile onaya gönder"}
                   </Text>
                 </Pressable>
-              ))}
-            </View>
-          </Field>
-
-          <Field label="Onaylayacak Öğretim Üyesi">
-            <SelectField
-              value={supervisor}
-              options={SUPERVISORS}
-              onChange={setSupervisor}
-            />
-          </Field>
-
-          <View style={styles.formActions}>
-            <Pressable style={styles.secondaryAction}>
-              <Text style={styles.secondaryActionText}>Push ile Gönder</Text>
-            </Pressable>
-            <Pressable onPress={onQr} style={styles.primaryAction}>
-              <QrIcon size={16} color={colors.kouForeground} />
-              <Text style={styles.primaryActionText}>Yüz Yüze QR Kod Oluştur</Text>
-            </Pressable>
-          </View>
+                <Pressable
+                  disabled={submitting}
+                  onPress={() => submit("qr")}
+                  style={[styles.primaryAction, submitting && { opacity: 0.5 }]}
+                >
+                  <QrIcon size={16} color={colors.kouForeground} />
+                  <Text style={styles.primaryActionText}>QR oluştur & gönder</Text>
+                </Pressable>
+              </View>
+              <Pressable onPress={() => setStep(2)} style={{ marginTop: 8 }}>
+                <Text style={styles.secondaryActionText}>Forma dön</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       )}
     </View>
   );
 }
 
-function QrSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function QrSheet({
+  open,
+  onClose,
+  info,
+}: {
+  open: boolean;
+  onClose: () => void;
+  info: QrInfo | null;
+}) {
+  const { user } = useAuth();
   const [left, setLeft] = useState(30);
   useEffect(() => {
     if (!open) return;
     setLeft(30);
     const t = setInterval(() => setLeft((v) => (v <= 0 ? 30 : v - 1)), 1000);
     return () => clearInterval(t);
-  }, [open]);
+  }, [open, info?.payload]);
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Yüz Yüze Onay QR Kodu">
@@ -470,17 +678,20 @@ function QrSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
             progressColor={colors.kou}
           />
           <View style={styles.qrBox}>
-            <QrCode size={150} />
+            <QrCode size={150} value={info?.payload} />
           </View>
         </View>
         <Text style={styles.qrTimer}>{left} saniye geçerli</Text>
         <View style={styles.qrMeta}>
-          <Text style={styles.qrName}>{STUDENT.name}</Text>
+          <Text style={styles.qrName}>{user?.name ?? "—"}</Text>
           <Text style={styles.meta}>
-            No: {STUDENT.no} · {STUDENT.rotation}
+            No: {user?.studentNo ?? "—"} · {user?.rotation ?? ""}
           </Text>
           <Text style={styles.meta}>
-            Damar Yolu Açma · Protokol ENC-2026-881
+            {info?.procedureName ?? "—"} · {info?.encounterId ?? "—"}
+          </Text>
+          <Text style={[styles.meta, { marginTop: 6 }]} selectable>
+            Payload: {info?.payload ?? "—"}
           </Text>
         </View>
         <View style={styles.waitRow}>
@@ -493,7 +704,10 @@ function QrSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 function ShiftsScreen({ onSwap }: { onSwap: () => void }) {
-  const [detail, setDetail] = useState<(typeof SHIFTS)[number] | null>(null);
+  const shifts = useShifts();
+  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [filter, setFilter] = useState<"all" | Shift["state"]>("all");
+  const [detail, setDetail] = useState<Shift | null>(null);
 
   const shiftStyle = (s: string) => {
     if (s === "completed") return { bg: colors.success10, text: colors.success };
@@ -507,80 +721,170 @@ function ShiftsScreen({ onSwap }: { onSwap: () => void }) {
     return "Yaklaşan";
   };
 
+  const list = shifts.data ?? [];
+  const filtered =
+    filter === "all" ? list : list.filter((s) => s.state === filter);
+
+  const filters: Array<{ key: typeof filter; label: string }> = [
+    { key: "all", label: "Tümü" },
+    { key: "upcoming", label: "Yaklaşan" },
+    { key: "completed", label: "Tamamlanan" },
+    { key: "night", label: "Gece" },
+  ];
+
   return (
     <View>
       <View style={styles.clinicalHeader}>
-        <Text style={styles.screenTitle}>Nöbet Takvimi</Text>
+        <Text style={styles.screenTitle}>Nöbet & Vardiya</Text>
         <Text style={styles.headerSub}>Ağustos 2026 · Acil Tıp AD</Text>
+        <View style={styles.segmentWrap}>
+          {(
+            [
+              ["calendar", "Takvim"],
+              ["list", "Liste"],
+            ] as Array<["calendar" | "list", string]>
+          ).map(([k, l]) => (
+            <Pressable
+              key={k}
+              onPress={() => setView(k)}
+              style={[styles.segmentBtn, view === k && styles.segmentBtnActive]}
+            >
+              <Text
+                style={[
+                  styles.segmentBtnText,
+                  view === k && styles.segmentBtnTextActive,
+                ]}
+              >
+                {l}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View style={styles.listPad}>
-        <View style={styles.card}>
-          <View style={styles.weekRow}>
-            {["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"].map((d) => (
-              <Text key={d} style={styles.weekDay}>
-                {d}
-              </Text>
-            ))}
-          </View>
-          <View style={styles.calendarGrid}>
-            {Array.from({ length: 35 }, (_, i) => {
-              const day = i - 4;
-              const shift = SHIFTS.find((s) => s.day === day);
-              const st = shift ? shiftStyle(shift.state) : null;
-              return (
-                <Pressable
-                  key={i}
-                  disabled={!shift}
-                  onPress={() => shift && setDetail(shift)}
-                  style={[
-                    styles.calCell,
-                    day < 1 || day > 31 ? styles.calEmpty : null,
-                    st ? { backgroundColor: st.bg } : null,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.calDay,
-                      st ? { color: st.text } : { color: colors.mutedForeground },
-                      day < 1 || day > 31 ? { opacity: 0 } : null,
-                    ]}
-                  >
-                    {day > 0 && day <= 31 ? day : "·"}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <View style={styles.legendRow}>
-            <Legend dotColor={colors.success} text="Tamamlandı" />
-            <Legend dotColor={colors.warning} text="Yaklaşan" />
-            <Legend dotColor={colors.info} text="Gece Nöbeti" />
-          </View>
-        </View>
+        {shifts.loading && !shifts.data ? (
+          <LoadingBlock label="Nöbetler yükleniyor…" />
+        ) : null}
+        {shifts.error && !shifts.data ? (
+          <ErrorBlock message={shifts.error} onRetry={shifts.reload} />
+        ) : null}
 
-        {SHIFTS.map((s) => {
-          const st = shiftStyle(s.state);
-          return (
-            <Pressable key={s.label} onPress={() => setDetail(s)} style={styles.card}>
-              <View style={styles.rowBetween}>
-                <View style={styles.flex1}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>
-                    {s.label}
-                  </Text>
-                  <Text style={styles.meta}>
-                    {s.time} · {s.area}
-                  </Text>
+        {view === "calendar" ? (
+          <View style={styles.card}>
+            <View style={styles.weekRow}>
+              {["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"].map((d) => (
+                <View key={d} style={styles.weekDayCell}>
+                  <Text style={styles.weekDay}>{d}</Text>
                 </View>
-                <View style={[styles.statusPill, { backgroundColor: st.bg }]}>
-                  <Text style={[styles.statusText, { color: st.text }]}>
-                    {shiftLabel(s.state)}
-                  </Text>
+              ))}
+            </View>
+            <View style={styles.calendarGrid}>
+              {Array.from({ length: 6 }, (_, week) => (
+                <View key={week} style={styles.calWeek}>
+                  {Array.from({ length: 7 }, (_, dow) => {
+                    const i = week * 7 + dow;
+                    const day = i - 4;
+                    const inMonth = day >= 1 && day <= 31;
+                    const shift = inMonth
+                      ? list.find((s) => s.day === day)
+                      : undefined;
+                    const st = shift ? shiftStyle(shift.state) : null;
+                    return (
+                      <Pressable
+                        key={i}
+                        disabled={!shift}
+                        onPress={() => shift && setDetail(shift)}
+                        style={styles.calCell}
+                      >
+                        {inMonth ? (
+                          <View
+                            style={[
+                              styles.calDayBubble,
+                              st ? { backgroundColor: st.bg } : null,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.calDay,
+                                {
+                                  color: st ? st.text : colors.mutedForeground,
+                                },
+                              ]}
+                            >
+                              {day}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.calDayBubble} />
+                        )}
+                      </Pressable>
+                    );
+                  })}
                 </View>
-              </View>
-            </Pressable>
-          );
-        })}
+              ))}
+            </View>
+            <View style={styles.legendRow}>
+              <Legend dotColor={colors.success} text="Tamamlandı" />
+              <Legend dotColor={colors.warning} text="Yaklaşan" />
+              <Legend dotColor={colors.info} text="Gece Nöbeti" />
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={styles.chipRow}>
+              {filters.map((f) => {
+                const active = filter === f.key;
+                return (
+                  <Pressable
+                    key={f.key}
+                    onPress={() => setFilter(f.key)}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <Text
+                      style={[styles.chipText, active && styles.chipTextActive]}
+                    >
+                      {f.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {filtered.length === 0 ? (
+              <EmptyBlock message="Bu filtrede nöbet yok" />
+            ) : (
+              filtered.map((s) => {
+                const st = shiftStyle(s.state);
+                return (
+                  <Pressable
+                    key={s.id}
+                    onPress={() => setDetail(s)}
+                    style={styles.card}
+                  >
+                    <View style={styles.rowBetween}>
+                      <View style={styles.flex1}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {s.label}
+                        </Text>
+                        <Text style={styles.meta}>
+                          {s.time} · {s.area}
+                        </Text>
+                      </View>
+                      <View
+                        style={[styles.statusPill, { backgroundColor: st.bg }]}
+                      >
+                        <Text style={[styles.statusText, { color: st.text }]}>
+                          {shiftLabel(s.state)}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+          </>
+        )}
 
         <Pressable onPress={onSwap} style={styles.primaryAction}>
           <Repeat2 size={16} color={colors.kouForeground} />
@@ -607,6 +911,17 @@ function ShiftsScreen({ onSwap }: { onSwap: () => void }) {
             ))}
             <Text style={styles.detailLabel}>Sorumlu Öğretim Üyesi</Text>
             <Text style={styles.detailValue}>Doç. Dr. Ayşe Kaya</Text>
+            {detail.state !== "completed" ? (
+              <Pressable
+                onPress={() => {
+                  setDetail(null);
+                  onSwap();
+                }}
+                style={[styles.primaryAction, { marginTop: 8 }]}
+              >
+                <Text style={styles.primaryActionText}>Takas İste</Text>
+              </Pressable>
+            ) : null}
           </View>
         )}
       </BottomSheet>
@@ -615,35 +930,82 @@ function ShiftsScreen({ onSwap }: { onSwap: () => void }) {
 }
 
 function SwapSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { token } = useAuth();
+  const shifts = useShifts(open);
+  const colleagues = useColleagues(open);
   const [sent, setSent] = useState(false);
-  const upcoming = SHIFTS.filter((s) => s.state !== "completed");
-  const [myShift, setMyShift] = useState(
-    `${upcoming[0]?.label ?? ""} · ${upcoming[0]?.area ?? ""}`,
-  );
-  const [colleague, setColleague] = useState(COLLEAGUES[0]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const upcoming = (shifts.data ?? []).filter((s) => s.state !== "completed");
+  const [shiftId, setShiftId] = useState("");
+  const [colleagueId, setColleagueId] = useState("");
   const friendShifts = [
     "09 Ağustos 2026 · 00:00 - 08:00 · Travma",
     "14 Ağustos 2026 · 16:00 - 08:00 · Sarı Alan",
   ];
   const [friendShift, setFriendShift] = useState(friendShifts[0]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (!shiftId && upcoming[0]) setShiftId(upcoming[0].id);
+    if (!colleagueId && colleagues.data?.[0]) {
+      setColleagueId(colleagues.data[0].id);
+    }
+  }, [open, shiftId, colleagueId, shifts.data, colleagues.data]);
+
   const handleClose = () => {
     setSent(false);
+    setError(null);
     onClose();
   };
+
+  const submit = async () => {
+    if (!token || !shiftId || !colleagueId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await requestShiftSwap(token, shiftId, { colleagueId });
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Takas isteği gönderilemedi");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const shiftLabel =
+    upcoming.find((s) => s.id === shiftId)
+      ? `${upcoming.find((s) => s.id === shiftId)!.label} · ${upcoming.find((s) => s.id === shiftId)!.area}`
+      : "—";
+  const colleagueName =
+    colleagues.data?.find((c) => c.id === colleagueId)?.name ?? "—";
 
   return (
     <BottomSheet open={open} onClose={handleClose} title="Nöbet Takas Talebi">
       <View style={styles.detailSheet}>
         <Field label="Takas edilecek nöbetim">
           <SelectField
-            value={myShift}
-            options={upcoming.map((s) => `${s.label} · ${s.area}`)}
-            onChange={setMyShift}
+            value={shiftLabel}
+            options={
+              upcoming.length
+                ? upcoming.map((s) => `${s.label} · ${s.area}`)
+                : ["—"]
+            }
+            onChange={(label) => {
+              const s = upcoming.find((x) => `${x.label} · ${x.area}` === label);
+              if (s) setShiftId(s.id);
+            }}
           />
         </Field>
         <Field label="Takas yapılacak arkadaş">
-          <SelectField value={colleague} options={COLLEAGUES} onChange={setColleague} />
+          <SelectField
+            value={colleagueName}
+            options={(colleagues.data ?? []).map((c) => c.name)}
+            onChange={(name) => {
+              const c = colleagues.data?.find((x) => x.name === name);
+              if (c) setColleagueId(c.id);
+            }}
+          />
         </Field>
         <Field label="Arkadaşın nöbeti">
           <SelectField
@@ -658,14 +1020,25 @@ function SwapSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
             80 Saat Yasal Çalışma Limiti Kontrol Edildi: UYGUN
           </Text>
         </View>
+        {error ? (
+          <Text style={{ color: "#DC2626", fontWeight: "600", marginBottom: 8 }}>
+            {error}
+          </Text>
+        ) : null}
         {sent ? (
           <View style={styles.sentBtn}>
             <CheckCircle2 size={16} color={colors.kouForeground} />
             <Text style={styles.primaryActionText}>Teklif Gönderildi</Text>
           </View>
         ) : (
-          <Pressable onPress={() => setSent(true)} style={styles.primaryAction}>
-            <Text style={styles.primaryActionText}>Takas Teklifi Gönder</Text>
+          <Pressable
+            onPress={submit}
+            disabled={busy}
+            style={[styles.primaryAction, busy && { opacity: 0.5 }]}
+          >
+            <Text style={styles.primaryActionText}>
+              {busy ? "Gönderiliyor…" : "Takas Teklifi Gönder"}
+            </Text>
           </Pressable>
         )}
       </View>
@@ -734,26 +1107,31 @@ function OsceStudent() {
 }
 
 function Profile() {
+  const { user } = useAuth();
+  const procedures = useProcedures();
   const integrations: Array<[string, string, boolean]> = [
     ["HBYS Hasta Protokol Servisi", "Bağlı", true],
     ["KOÜ Öğrenci Bilgi Sistemi (OBS)", "Bağlı", true],
     ["Offline SQLCipher Yerel Kasa", "Aktif · 2 kayıt", true],
     ["e-Nabız Girişim Doğrulama", "Bağlı değil", false],
   ];
+  const procs = procedures.data ?? [];
 
   return (
     <View>
       <View style={[styles.clinicalHeader, { paddingBottom: 24 }]}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarLg}>
-            <Text style={styles.avatarLgText}>{STUDENT.initials}</Text>
+            <Text style={styles.avatarLgText}>{user?.initials ?? "—"}</Text>
           </View>
           <View style={styles.headerTextWrap}>
             <Text style={styles.profileName} numberOfLines={1}>
-              {STUDENT.name}
+              {user?.name ?? "—"}
             </Text>
-            <Text style={styles.headerSub}>Öğrenci No: {STUDENT.no}</Text>
-            <Text style={styles.headerSub}>{STUDENT.rotation}</Text>
+            <Text style={styles.headerSub}>
+              Öğrenci No: {user?.studentNo ?? "—"}
+            </Text>
+            <Text style={styles.headerSub}>{user?.rotation ?? ""}</Text>
           </View>
         </View>
       </View>
@@ -762,8 +1140,11 @@ function Profile() {
           <Text style={[styles.cardTitle, { marginBottom: 12 }]}>
             U-ÇEP Girişim Karnesi
           </Text>
-          {PROCEDURES.map((p) => (
-            <View key={p.name} style={styles.profileProc}>
+          {procedures.loading && !procedures.data ? (
+            <LoadingBlock label="Prosedürler yükleniyor…" />
+          ) : null}
+          {procs.map((p) => (
+            <View key={p.id} style={styles.profileProc}>
               <View style={styles.rowBetween}>
                 <Text style={styles.profileProcName} numberOfLines={1}>
                   {p.name}
@@ -1293,36 +1674,61 @@ const styles = StyleSheet.create({
     backgroundColor: colors.info,
   },
   waitText: { fontSize: 12, fontWeight: "500", color: colors.mutedForeground },
-  weekRow: { flexDirection: "row" },
-  weekDay: {
+  weekRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  weekDayCell: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekDay: {
     textAlign: "center",
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: "600",
     color: colors.mutedForeground,
   },
   calendarGrid: {
-    marginTop: 4,
+    width: "100%",
+    gap: 4,
+  },
+  calWeek: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    width: "100%",
+    alignItems: "center",
   },
   calCell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     aspectRatio: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+  },
+  calDayBubble: {
+    width: "82%",
+    aspectRatio: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   calEmpty: {},
-  calDay: { fontSize: 11, fontWeight: "600" },
+  calDay: {
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    includeFontPadding: false,
+  },
   legendRow: {
-    marginTop: 12,
+    marginTop: 14,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "center",
+    gap: 14,
   },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 10, color: colors.mutedForeground },
+  legendText: { fontSize: 11, color: colors.mutedForeground },
   detailSheet: { gap: 12, paddingBottom: 8 },
   detailBox: {
     borderRadius: 16,

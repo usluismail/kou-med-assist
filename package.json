@@ -7,9 +7,12 @@
     "start": "expo start --lan",
     "ios": "expo start --lan --ios",
     "android": "expo start --android",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "mock": "npm --prefix mock-server start",
+    "mock:dev": "npm --prefix mock-server run dev"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.1.1",
     "clsx": "^2.1.1",
     "expo": "~57.0.9",
     "expo-constants": "~57.0.8",

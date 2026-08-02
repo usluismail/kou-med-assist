@@ -1,10 +1,13 @@
 import Svg, { G, Rect } from "react-native-svg";
 import { colors } from "@/lib/theme";
 
-export function QrCode({ size = 168 }: { size?: number }) {
+export function QrCode({ size = 168, value }: { size?: number; value?: string }) {
   const n = 21;
   const cells: boolean[][] = [];
   let seed = 190101044;
+  if (value) {
+    for (let i = 0; i < value.length; i++) seed = (seed + value.charCodeAt(i) * (i + 1)) % 2147483647;
+  }
   const rand = () => {
     seed = (seed * 1103515245 + 12345) % 2147483648;
     return seed / 2147483648;

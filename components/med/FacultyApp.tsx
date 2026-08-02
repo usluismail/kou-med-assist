@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -19,14 +20,21 @@ import {
   Stethoscope,
 } from "lucide-react-native";
 import { SwipeToApprove } from "./SwipeToApprove";
-import { PENDING_APPROVALS } from "@/lib/med-data";
+import { EmptyBlock, ErrorBlock, LoadingBlock } from "./StateViews";
+import { useAuth } from "@/lib/api/AuthContext";
+import { approveLog, requestRevision, validateQrPayload } from "@/lib/api";
+import { usePendingApprovals } from "@/lib/api/hooks";
+import { relativeTimeTr } from "@/lib/api/labels";
+import type { PendingApproval } from "@/lib/api/types";
 import { colors } from "@/lib/theme";
 
 type Tab = "pending" | "scanner" | "osce";
 
 export function FacultyApp() {
+  const { user } = useAuth();
+  const pending = usePendingApprovals();
   const [tab, setTab] = useState<Tab>("pending");
-  const [approved, setApproved] = useState<string[]>([]);
+  const pendingCount = pending.data?.length ?? 0;
 
   return (
     <View style={styles.root}>
@@ -34,10 +42,10 @@ export function FacultyApp() {
         <View style={styles.headerRow}>
           <View style={styles.flex1}>
             <Text style={styles.headerName} numberOfLines={1}>
-              Doç. Dr. Ayşe Kaya
+              {user?.name ?? "Akademisyen"}
             </Text>
             <Text style={styles.headerSub} numberOfLines={1}>
-              Acil Tıp AD · Eğitim Sorumlusu
+              {user?.department ?? ""}
             </Text>
           </View>
           <View style={styles.headerPill}>
@@ -47,7 +55,7 @@ export function FacultyApp() {
         <View style={styles.tabSwitch}>
           {(
             [
-              ["pending", `Karneler (${PENDING_APPROVALS.length - approved.length})`],
+              ["pending", `Karneler (${pendingCount})`],
               ["scanner", "QR Tarayıcı"],
               ["osce", "OSCE Rubrik"],
             ] as Array<[Tab, string]>
@@ -72,11 +80,14 @@ export function FacultyApp() {
       >
         {tab === "pending" && (
           <ApprovalList
-            approved={approved}
-            onApprove={(id) => setApproved((a) => [...a, id])}
+            items={pending.data}
+            loading={pending.loading}
+            error={pending.error}
+            onRetry={pending.reload}
+            onChanged={pending.reload}
           />
         )}
-        {tab === "scanner" && <Scanner />}
+        {tab === "scanner" && <Scanner onApproved={pending.reload} />}
         {tab === "osce" && <OsceRubric />}
       </ScrollView>
     </View>
@@ -84,21 +95,28 @@ export function FacultyApp() {
 }
 
 function ApprovalList({
-  approved,
-  onApprove,
+  items,
+  loading,
+  error,
+  onRetry,
+  onChanged,
 }: {
-  approved: string[];
-  onApprove: (id: string) => void;
+  items: PendingApproval[] | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onChanged: () => void;
 }) {
+  if (loading && !items) return <LoadingBlock label="Onaylar yükleniyor…" />;
+  if (error && !items) return <ErrorBlock message={error} onRetry={onRetry} />;
+  if (!items || items.length === 0) {
+    return <EmptyBlock message="Bekleyen onay yok" />;
+  }
+
   return (
     <View style={styles.listPad}>
-      {PENDING_APPROVALS.map((item) => (
-        <ApprovalCard
-          key={item.id}
-          item={item}
-          approved={approved.includes(item.id)}
-          onApprove={() => onApprove(item.id)}
-        />
+      {items.map((item) => (
+        <ApprovalCard key={item.id} item={item} onChanged={onChanged} />
       ))}
     </View>
   );
@@ -106,15 +124,17 @@ function ApprovalList({
 
 function ApprovalCard({
   item,
-  approved,
-  onApprove,
+  onChanged,
 }: {
-  item: (typeof PENDING_APPROVALS)[number];
-  approved: boolean;
-  onApprove: () => void;
+  item: PendingApproval;
+  onChanged: () => void;
 }) {
+  const { token } = useAuth();
   const [note, setNote] = useState("");
   const [recording, setRecording] = useState(false);
+  const [approved, setApproved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const dictate = () => {
     setRecording(true);
@@ -122,6 +142,36 @@ function ApprovalCard({
       setNote("Teknik usulüne uygun, hasta iletişimi başarılı.");
       setRecording(false);
     }, 900);
+  };
+
+  const doApprove = async () => {
+    if (!token || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await approveLog(token, item.id, { note: note || undefined });
+      setApproved(true);
+      setTimeout(() => onChanged(), 600);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Onay başarısız");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doRevision = async () => {
+    if (!token || busy) return;
+    const revisionNote = note.trim() || "Lütfen kaydı gözden geçirin.";
+    setBusy(true);
+    setError(null);
+    try {
+      await requestRevision(token, item.id, revisionNote);
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Düzeltme isteği başarısız");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const confettiColors = ["#10B981", "#008542", "#F59E0B", "#3B82F6"];
@@ -140,13 +190,13 @@ function ApprovalCard({
         </View>
         <View style={styles.flex1}>
           <Text style={styles.cardTitle} numberOfLines={1}>
-            {item.student}
+            {item.studentName}
           </Text>
           <Text style={styles.cardSub} numberOfLines={1}>
-            {item.proc}
+            {item.procedureName}
           </Text>
           <Text style={styles.meta}>
-            Protokol: {item.id} · {item.time}
+            Protokol: {item.encounterId} · {relativeTimeTr(item.submittedAt)}
           </Text>
         </View>
       </View>
@@ -166,9 +216,27 @@ function ApprovalCard({
         </Text>
       </View>
 
+      {error ? (
+        <Text style={{ color: "#DC2626", marginTop: 8, fontWeight: "600" }}>
+          {error}
+        </Text>
+      ) : null}
+
       <View style={{ marginTop: 12 }}>
-        <SwipeToApprove approved={approved} onApprove={onApprove} />
+        <SwipeToApprove approved={approved} onApprove={doApprove} />
       </View>
+
+      {!approved ? (
+        <Pressable
+          onPress={doRevision}
+          disabled={busy}
+          style={{ marginTop: 10, alignItems: "center", paddingVertical: 8 }}
+        >
+          <Text style={{ color: colors.clinical, fontWeight: "700", fontSize: 13 }}>
+            Düzeltme iste
+          </Text>
+        </Pressable>
+      ) : null}
 
       {approved &&
         Array.from({ length: 14 }, (_, i) => (
@@ -189,8 +257,12 @@ function ApprovalCard({
   );
 }
 
-function Scanner() {
-  const [scanned, setScanned] = useState(false);
+function Scanner({ onApproved }: { onApproved?: () => void }) {
+  const { token } = useAuth();
+  const [payload, setPayload] = useState("");
+  const [scanned, setScanned] = useState<PendingApproval | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -217,6 +289,41 @@ function Scanner() {
     outputRange: [8, 180],
   });
 
+  const validate = async () => {
+    if (!token || !payload.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await validateQrPayload(token, payload.trim());
+      if ("status" in res && res.status === "invalid") {
+        setError(res.message || "QR geçersiz");
+        setScanned(null);
+      } else {
+        setScanned(res as PendingApproval);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "QR doğrulanamadı");
+      setScanned(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const approveScanned = async () => {
+    if (!token || !scanned) return;
+    setBusy(true);
+    try {
+      await approveLog(token, scanned.id);
+      setScanned(null);
+      setPayload("");
+      onApproved?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Onay başarısız");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <View style={styles.scannerPad}>
       <View style={styles.scannerFrame}>
@@ -234,20 +341,49 @@ function Scanner() {
         <Text style={styles.scanHint}>
           Öğrencinin QR kodunu çerçeveye hizalayın
         </Text>
-        <Pressable onPress={() => setScanned(true)} style={styles.scanBtn}>
+        <TextInput
+          value={payload}
+          onChangeText={setPayload}
+          placeholder="QR payload yapıştır (Sprint B — kamera sonra)"
+          placeholderTextColor={colors.mutedForeground}
+          autoCapitalize="none"
+          style={{
+            marginTop: 12,
+            width: "100%",
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            color: colors.foreground,
+            backgroundColor: colors.card,
+          }}
+        />
+        <Pressable
+          onPress={validate}
+          disabled={busy || !payload.trim()}
+          style={[styles.scanBtn, (busy || !payload.trim()) && { opacity: 0.5 }]}
+        >
           <ScanLine size={16} color={colors.kouForeground} />
-          <Text style={styles.scanBtnText}>Taramayı Simüle Et</Text>
+          <Text style={styles.scanBtnText}>
+            {busy ? "Doğrulanıyor…" : "Payload doğrula"}
+          </Text>
         </Pressable>
       </View>
+      {error ? (
+        <Text style={{ color: "#DC2626", fontWeight: "600", marginTop: 12 }}>
+          {error}
+        </Text>
+      ) : null}
       {scanned && (
         <View style={styles.scanResult}>
           <Text style={styles.scanResultKicker}>QR Doğrulandı</Text>
-          <Text style={styles.cardTitle}>İnt. Dr. Ahmet Yılmaz · 190101044</Text>
+          <Text style={styles.cardTitle}>{scanned.studentName}</Text>
           <Text style={styles.cardSub}>
-            Damar Yolu Açma · Protokol ENC-2026-881
+            {scanned.procedureName} · {scanned.encounterId}
           </Text>
           <View style={{ marginTop: 12 }}>
-            <SwipeToApprove approved={false} onApprove={() => setScanned(false)} />
+            <SwipeToApprove approved={false} onApprove={approveScanned} />
           </View>
         </View>
       )}
