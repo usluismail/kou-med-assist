@@ -7,6 +7,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import {
   Bell,
@@ -15,6 +17,7 @@ import {
   ChevronRight,
   ClipboardList,
   Home,
+  LogOut,
   Plus,
   QrCode as QrIcon,
   Repeat2,
@@ -57,12 +60,16 @@ export function StudentApp() {
   const [tab, setTab] = useState<Tab>("home");
   const [qrInfo, setQrInfo] = useState<QrInfo | null>(null);
   const [swapOpen, setSwapOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.root}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 88 + Math.max(insets.bottom, 8) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {tab === "home" && (
@@ -82,14 +89,18 @@ export function StudentApp() {
       {tab === "home" && (
         <Pressable
           onPress={() => setTab("logbook")}
-          style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.95 }] }]}
+          style={({ pressed }) => [
+            styles.fab,
+            { bottom: 72 + Math.max(insets.bottom, 8) },
+            pressed && { transform: [{ scale: 0.95 }] },
+          ]}
         >
           <Plus size={20} color={colors.kouForeground} />
           <Text style={styles.fabText}>Log Ekle</Text>
         </Pressable>
       )}
 
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         {(
           [
             ["home", "Ana Sayfa", Home],
@@ -104,14 +115,17 @@ export function StudentApp() {
             <Pressable
               key={key}
               onPress={() => setTab(key)}
-              style={styles.tabItem}
+              style={[styles.tabItem, active && styles.tabItemActive]}
             >
               <Icon
                 size={20}
-                color={active ? colors.kou : colors.mutedForeground}
+                color={active ? colors.kouForeground : colors.mutedForeground}
                 strokeWidth={active ? 2.5 : 2}
               />
-              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+              <Text
+                style={[styles.tabLabel, active && styles.tabLabelActive]}
+                numberOfLines={1}
+              >
                 {label}
               </Text>
             </Pressable>
@@ -201,7 +215,7 @@ function Dashboard({
 
   return (
     <View style={styles.screenPad}>
-      <View style={styles.clinicalHeader}>
+      <View style={[styles.clinicalHeader, styles.homeHeader]}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.avatarSm}>
@@ -228,20 +242,22 @@ function Dashboard({
       <View style={styles.dashboardBody}>
         <View style={styles.card}>
           <View style={styles.progressRow}>
-            <ProgressRing
-              size={112}
-              strokeWidth={10}
-              pct={pct}
-              trackColor={colors.muted}
-              progressColor={colors.kou}
-            >
-              <View style={styles.ringCenter}>
-                <Text style={styles.ringPct}>%{pct}</Text>
-                <Text style={styles.ringSub}>
-                  {done}/{total}
-                </Text>
-              </View>
-            </ProgressRing>
+            <View style={styles.ringWrap}>
+              <ProgressRing
+                size={112}
+                strokeWidth={10}
+                pct={pct}
+                trackColor={colors.muted}
+                progressColor={colors.kou}
+              >
+                <View style={styles.ringCenter}>
+                  <Text style={styles.ringPct}>%{pct}</Text>
+                  <Text style={styles.ringSub}>
+                    {done}/{total}
+                  </Text>
+                </View>
+              </ProgressRing>
+            </View>
             <View style={styles.progressInfo}>
               <Text style={styles.kicker}>U-ÇEP İlerlemesi</Text>
               <Text style={styles.progressTitle}>
@@ -1062,11 +1078,11 @@ function OsceStudent() {
   return (
     <View>
       <View style={styles.clinicalHeader}>
-        <Text style={styles.screenTitle}>Mobil Pratik Sınav (OSCE)</Text>
+        <Text style={styles.screenTitle}>OSCE Sınav Programı</Text>
         <Text style={styles.headerSub}>
           {primary
             ? `${primary.department ?? "Acil Tıp"} · ${primary.stationCount} istasyon`
-            : "OSCE oturumları"}
+            : "Objektif Yapılandırılmış Klinik Sınav"}
         </Text>
       </View>
       <View style={styles.listPad}>
@@ -1080,58 +1096,82 @@ function OsceStudent() {
           <EmptyBlock message="Planlanmış OSCE oturumu yok" />
         ) : null}
 
-        {list.map((session) => (
-          <View key={session.id}>
-            <View style={styles.card}>
-              <View style={styles.rowBetween}>
-                <View style={styles.flex1}>
-                  <Text style={styles.cardTitle}>{session.title}</Text>
-                  <Text style={styles.meta}>
-                    {session.date} · {session.time}
-                  </Text>
-                </View>
-                <View style={styles.infoPill}>
-                  <Timer size={14} color={colors.info} />
-                  <Text style={styles.infoPillText}>
-                    {daysLeft(session.date)} Gün
-                  </Text>
-                </View>
-              </View>
-            </View>
-            {session.stations.map((st) => (
-              <View key={st.id} style={styles.card}>
-                <View style={styles.rowBetween}>
-                  <Text style={[styles.cardTitle, styles.flex1]} numberOfLines={1}>
-                    {st.title}
-                  </Text>
-                  <View
-                    style={[
-                      styles.statusPill,
-                      st.status === "done"
-                        ? styles.statusApproved
-                        : styles.statusPending,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        {
-                          color:
-                            st.status === "done" ? colors.success : colors.warning,
-                        },
-                      ]}
-                    >
-                      {st.status === "done" && st.score != null
-                        ? `%${st.score}`
-                        : "—"}
+        {list.map((session) => {
+          const doneCount = session.stations.filter((s) => s.status === "done").length;
+          return (
+            <View key={session.id} style={{ gap: 10 }}>
+              <View style={styles.card}>
+                <Text style={styles.infoKicker}>Sınav Oturumu</Text>
+                <View style={[styles.rowBetween, { marginTop: 6 }]}>
+                  <View style={styles.flex1}>
+                    <Text style={styles.cardTitle}>{session.title}</Text>
+                    <Text style={styles.meta}>
+                      {session.date} · {session.time}
+                    </Text>
+                  </View>
+                  <View style={styles.infoPill}>
+                    <Timer size={14} color={colors.info} />
+                    <Text style={styles.infoPillText}>
+                      {daysLeft(session.date)} Gün
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.meta}>{st.subtitle}</Text>
+                <View style={styles.osceProgressMeta}>
+                  <Text style={styles.meta}>
+                    İlerleme: {doneCount}/{session.stationCount} istasyon
+                  </Text>
+                  <View style={[styles.barTrack, { height: 6, marginTop: 6 }]}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          height: 6,
+                          width: `${session.stationCount ? (doneCount / session.stationCount) * 100 : 0}%`,
+                          backgroundColor: colors.kou,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
               </View>
-            ))}
-          </View>
-        ))}
+              {session.stations.map((st, idx) => (
+                <View key={st.id} style={styles.card}>
+                  <View style={styles.rowBetween}>
+                    <View style={styles.osceStationIndex}>
+                      <Text style={styles.osceStationIndexText}>{idx + 1}</Text>
+                    </View>
+                    <Text style={[styles.cardTitle, styles.flex1]} numberOfLines={2}>
+                      {st.title}
+                    </Text>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        st.status === "done"
+                          ? styles.statusApproved
+                          : styles.statusPending,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusText,
+                          {
+                            color:
+                              st.status === "done" ? colors.success : colors.warning,
+                          },
+                        ]}
+                      >
+                        {st.status === "done" && st.score != null
+                          ? `%${st.score}`
+                          : "Bekliyor"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.meta, { marginLeft: 40 }]}>{st.subtitle}</Text>
+                </View>
+              ))}
+            </View>
+          );
+        })}
 
         {primary ? (
           <Pressable style={styles.primaryAction}>
@@ -1144,7 +1184,8 @@ function OsceStudent() {
 }
 
 function Profile() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const procedures = useProcedures();
   const integrations: Array<[string, string, boolean]> = [
     ["HBYS Hasta Protokol Servisi", "Bağlı", true],
@@ -1153,6 +1194,21 @@ function Profile() {
     ["e-Nabız Girişim Doğrulama", "Bağlı değil", false],
   ];
   const procs = procedures.data ?? [];
+
+  const infoRows: Array<[string, string]> = [
+    ["Ad Soyad", user?.name ?? "—"],
+    ["E-posta", user?.email ?? "—"],
+    ["Öğrenci No", user?.studentNo ?? "—"],
+    ["Fakülte", user?.faculty ?? "—"],
+    ["Anabilim Dalı", user?.department ?? "—"],
+    ["Rotasyon", user?.rotation ?? "—"],
+    ["Rol", "Öğrenci / İntörn"],
+  ];
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/");
+  };
 
   return (
     <View>
@@ -1173,6 +1229,28 @@ function Profile() {
         </View>
       </View>
       <View style={styles.listPad}>
+        <View style={styles.card}>
+          <Text style={[styles.cardTitle, { marginBottom: 4 }]}>
+            Genel Bilgiler
+          </Text>
+          <Text style={[styles.cardSub, { marginBottom: 12 }]}>
+            API’den gelen kayıt — yalnızca görüntüleme
+          </Text>
+          {infoRows.map(([label, value], i) => (
+            <View
+              key={label}
+              style={[
+                styles.infoRow,
+                i < infoRows.length - 1 && styles.infoRowBorder,
+              ]}
+            >
+              <Text style={styles.infoLabel}>{label}</Text>
+              <Text style={styles.infoValue} numberOfLines={2}>
+                {value}
+              </Text>
+            </View>
+          ))}
+        </View>
         <View style={styles.card}>
           <Text style={[styles.cardTitle, { marginBottom: 12 }]}>
             U-ÇEP Girişim Karnesi
@@ -1240,6 +1318,13 @@ function Profile() {
             </View>
           ))}
         </View>
+        <Pressable
+          onPress={handleLogout}
+          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.9 }]}
+        >
+          <LogOut size={18} color={colors.danger} />
+          <Text style={styles.logoutBtnText}>Hesaptan Çıkış Yap</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -1355,6 +1440,49 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
   },
+  homeHeader: {
+    paddingBottom: 28,
+  },
+  ringWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoRow: {
+    paddingVertical: 10,
+  },
+  infoRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  infoValue: {
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.foreground,
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.35)",
+    backgroundColor: "rgba(239,68,68,0.06)",
+    paddingVertical: 14,
+  },
+  logoutBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.danger,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1401,7 +1529,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   badgeText: { fontSize: 9, fontWeight: "700", color: colors.white },
-  dashboardBody: { marginTop: -20, paddingHorizontal: 16, gap: 12 },
+  dashboardBody: { marginTop: 12, paddingHorizontal: 16, gap: 12 },
   card: {
     backgroundColor: colors.card,
     borderRadius: 24,
@@ -1413,8 +1541,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   warningCard: { borderLeftWidth: 4, borderLeftColor: colors.warning },
-  progressRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  ringCenter: { alignItems: "center" },
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  ringCenter: { alignItems: "center", justifyContent: "center" },
   ringPct: { fontSize: 20, fontWeight: "700", color: colors.foreground },
   ringSub: { fontSize: 10, color: colors.mutedForeground, marginTop: 2 },
   progressInfo: { flex: 1, minWidth: 0 },
@@ -1486,6 +1618,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   infoPillText: { fontSize: 12, fontWeight: "700", color: colors.info },
+  osceProgressMeta: { marginTop: 12 },
+  osceStationIndex: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: colors.kou10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  osceStationIndexText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.kou,
+  },
   screenTitle: { fontSize: 18, fontWeight: "600", color: colors.white },
   segmentWrap: {
     marginTop: 12,
@@ -1664,12 +1811,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.card,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 6,
+    paddingHorizontal: 6,
+    gap: 4,
   },
-  tabItem: { flex: 1, alignItems: "center", gap: 4, paddingBottom: 8 },
-  tabLabel: { fontSize: 10, fontWeight: "500", color: colors.mutedForeground },
-  tabLabelActive: { color: colors.kou },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    borderRadius: 12,
+    minHeight: 52,
+  },
+  tabItemActive: {
+    backgroundColor: colors.kou,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: colors.mutedForeground,
+    textAlign: "center",
+  },
+  tabLabelActive: { color: colors.kouForeground },
   qrSheet: { alignItems: "center", paddingBottom: 8 },
   qrRingWrap: {
     width: 220,

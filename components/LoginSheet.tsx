@@ -42,7 +42,7 @@ const roles = [
     tone: colors.clinical,
     kicker: "Öğretim Üyesi / Akademisyen Girişi",
     title: "Akademisyen Portalı",
-    subtitle: "Karne Onayları, QR Değerlendirme, Sesli Not ve Rubrikler",
+    subtitle: null as string | null,
   },
 ];
 
@@ -81,7 +81,9 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.roleKicker}>{r.kicker}</Text>
                       <Text style={styles.roleTitle}>{r.title}</Text>
-                      <Text style={styles.roleSub}>{r.subtitle}</Text>
+                      {r.subtitle ? (
+                        <Text style={styles.roleSub}>{r.subtitle}</Text>
+                      ) : null}
                     </View>
                     <ChevronRight size={20} color={colors.mutedForeground} />
                   </Pressable>
@@ -89,7 +91,11 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
               </View>
             </>
           ) : (
-            <LoginForm role={role} onBack={() => setRole(null)} />
+            <LoginForm
+              role={role}
+              onBack={() => setRole(null)}
+              onClose={onClose}
+            />
           )}
           <Text style={styles.footer}>
             Kocaeli Üniversitesi Bilgi İşlem Daire Başkanlığı © 2026
@@ -100,7 +106,15 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
+function LoginForm({
+  role,
+  onBack,
+  onClose,
+}: {
+  role: Role;
+  onBack: () => void;
+  onClose: () => void;
+}) {
   const student = role === "student";
   const router = useRouter();
   const { login } = useAuth();
@@ -132,7 +146,8 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
         password,
         role,
       });
-      router.push(student ? "/ogrenci" : "/akademisyen");
+      onClose();
+      router.replace(student ? "/ogrenci" : "/akademisyen");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Giriş başarısız");
     } finally {
@@ -202,7 +217,6 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
           <View style={[styles.checkbox, remember && styles.checkboxOn]} />
           <Text style={styles.remember}>Beni Hatırla</Text>
         </Pressable>
-        <Text style={styles.forgot}>Şifremi Unuttum?</Text>
       </View>
 
       <Pressable
@@ -355,7 +369,6 @@ const styles = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   remember: { fontSize: 12, fontWeight: "500", color: colors.secondaryForeground },
-  forgot: { fontSize: 12, fontWeight: "600", color: colors.primary },
   submit: {
     marginTop: 16,
     backgroundColor: colors.primary,

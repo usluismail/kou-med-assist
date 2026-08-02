@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   LayoutChangeEvent,
@@ -10,11 +10,13 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 import {
   CheckCircle2,
   ClipboardCheck,
   Cloud,
   CloudOff,
+  LogOut,
   Mic,
   ScanLine,
   Stethoscope,
@@ -33,27 +35,73 @@ import { colors } from "@/lib/theme";
 type Tab = "pending" | "scanner" | "osce";
 
 export function FacultyApp() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const pending = usePendingApprovals();
   const [tab, setTab] = useState<Tab>("pending");
+  const [profileOpen, setProfileOpen] = useState(false);
   const pendingCount = pending.data?.length ?? 0;
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/");
+  };
+
+  const infoRows: Array<[string, string]> = [
+    ["Ad Soyad", user?.name ?? "—"],
+    ["E-posta", user?.email ?? "—"],
+    ["Fakülte", user?.faculty ?? "—"],
+    ["Birim", user?.department ?? "—"],
+    ["Rol", "Akademisyen / Öğretim Üyesi"],
+  ];
 
   return (
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View style={styles.flex1}>
+          <Pressable
+            style={styles.flex1}
+            onPress={() => setProfileOpen((v) => !v)}
+          >
             <Text style={styles.headerName} numberOfLines={1}>
               {user?.name ?? "Akademisyen"}
             </Text>
             <Text style={styles.headerSub} numberOfLines={1}>
               {user?.department ?? ""}
             </Text>
-          </View>
-          <View style={styles.headerPill}>
-            <Text style={styles.headerPillText}>Hızlı Onay Paneli</Text>
+          </Pressable>
+          <View style={styles.headerActions}>
+            <View style={styles.headerPill}>
+              <Text style={styles.headerPillText}>Hızlı Onay Paneli</Text>
+            </View>
+            <Pressable
+              onPress={handleLogout}
+              style={styles.headerLogout}
+              hitSlop={8}
+              accessibilityLabel="Hesaptan çıkış yap"
+            >
+              <LogOut size={16} color={colors.white} />
+            </Pressable>
           </View>
         </View>
+        {profileOpen ? (
+          <View style={styles.facultyProfileCard}>
+            <Text style={styles.facultyProfileTitle}>Genel Bilgiler</Text>
+            <Text style={styles.facultyProfileHint}>
+              API’den gelen kayıt — yalnızca görüntüleme
+            </Text>
+            {infoRows.map(([label, value]) => (
+              <View key={label} style={styles.facultyInfoRow}>
+                <Text style={styles.facultyInfoLabel}>{label}</Text>
+                <Text style={styles.facultyInfoValue}>{value}</Text>
+              </View>
+            ))}
+            <Pressable onPress={handleLogout} style={styles.facultyLogoutBtn}>
+              <LogOut size={16} color={colors.danger} />
+              <Text style={styles.facultyLogoutText}>Hesaptan Çıkış Yap</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <View style={styles.tabSwitch}>
           {(
             [
@@ -420,8 +468,45 @@ function OsceRubric() {
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
 
+  const scoreSummary = useMemo(() => {
+    if (!data) return { answered: 0, total: 0, checklistPts: 0, maxPts: 0 };
+    let checklistPts = 0;
+    let maxPts = 0;
+    let answered = 0;
+    for (const item of data.checklist) {
+      const ans = answers[item.id];
+      if (item.type === "tri") {
+        const opts = item.options ?? [];
+        maxPts += Math.max(0, ...opts.map((o) => o.points));
+        if (ans != null) {
+          answered += 1;
+          const match = opts.find((o) => (o.id ?? o.value ?? o.label) === ans);
+          checklistPts += match?.points ?? 0;
+        }
+      } else {
+        const max = item.max ?? 5;
+        maxPts += max;
+        if (typeof ans === "number") {
+          answered += 1;
+          checklistPts += ans;
+        }
+      }
+    }
+    return { answered, total: data.checklist.length, checklistPts, maxPts };
+  }, [answers, data]);
+
+  const checklistPct =
+    scoreSummary.maxPts > 0
+      ? Math.round((scoreSummary.checklistPts / scoreSummary.maxPts) * 100)
+      : 0;
+  const combinedPct = Math.round(checklistPct * 0.7 + global * 0.3);
+
   const save = async () => {
     if (!token || !data) return;
+    if (scoreSummary.answered < scoreSummary.total) {
+      toast.show("Tüm rubrik maddelerini işaretleyin", "error");
+      return;
+    }
     setSaving(true);
     try {
       await submitOsceScore(token, {
@@ -455,120 +540,189 @@ function OsceRubric() {
 
   return (
     <View style={styles.listPad}>
-      <View style={styles.card}>
-        <View style={styles.osceHeader}>
-          <View style={styles.flex1}>
-            <Text style={styles.osceKicker}>İstasyon {data.number}</Text>
-            <Text style={styles.osceTitle}>{data.title}</Text>
-          </View>
-          <Pressable
-            onPress={() => setOnline((v) => !v)}
+      <View style={styles.osceExamBanner}>
+        <View style={styles.flex1}>
+          <Text style={styles.osceExamLabel}>Objektif Yapılandırılmış Klinik Sınav</Text>
+          <Text style={styles.osceExamTitle}>Değerlendirme Rubriği</Text>
+        </View>
+        <Pressable
+          onPress={() => setOnline((v) => !v)}
+          style={[
+            styles.syncPill,
+            online ? styles.syncOnline : styles.syncOffline,
+          ]}
+        >
+          {online ? (
+            <Cloud size={12} color={colors.success} />
+          ) : (
+            <CloudOff size={12} color={colors.warning} />
+          )}
+          <Text
             style={[
-              styles.syncPill,
-              online ? styles.syncOnline : styles.syncOffline,
+              styles.syncText,
+              { color: online ? colors.success : colors.warning },
             ]}
           >
-            {online ? (
-              <Cloud size={12} color={colors.success} />
-            ) : (
-              <CloudOff size={12} color={colors.warning} />
-            )}
-            <Text
-              style={[
-                styles.syncText,
-                { color: online ? colors.success : colors.warning },
-              ]}
-            >
-              {online ? "Online (Synced)" : "Offline (SQLCipher)"}
+            {online ? "Senkron" : "Çevrimdışı"}
+          </Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.osceHeader}>
+          <View style={styles.stationBadge}>
+            <Text style={styles.stationBadgeText}>İstasyon {data.number}</Text>
+          </View>
+          <View style={styles.timerBox}>
+            <View style={[styles.timerDot, seconds < 60 && { backgroundColor: colors.warning }]} />
+            <Text style={styles.timerText}>
+              {mm}:{ss}
             </Text>
-          </Pressable>
+          </View>
         </View>
+        <Text style={styles.osceTitle}>{data.title}</Text>
         <View style={styles.candidateRow}>
           <View style={styles.candidateAvatar}>
             <Text style={styles.candidateInitials}>{cand.initials}</Text>
           </View>
           <View style={styles.flex1}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              Aday #{cand.code} - {cand.name}
+              Aday #{cand.code} · {cand.name}
             </Text>
             <Text style={styles.meta}>
               {cand.period ? `${cand.period} · ` : ""}
               {cand.group}
             </Text>
           </View>
-          <View style={styles.timerBox}>
-            <View style={styles.timerDot} />
-            <Text style={styles.timerText}>
-              {mm}:{ss}
-            </Text>
-          </View>
         </View>
       </View>
 
-      {data.checklist.map((item) => (
-        <View key={item.id} style={styles.card}>
-          <Text style={styles.rubricQ}>{item.prompt}</Text>
-          {item.type === "tri" ? (
-            <View style={styles.rubricRow3}>
-              {(item.options ?? []).map((opt) => {
-                const val = opt.id ?? opt.value ?? opt.label;
-                const active = answers[item.id] === val;
-                return (
-                  <Pressable
-                    key={val}
-                    onPress={() =>
-                      setAnswers((a) => ({ ...a, [item.id]: val }))
-                    }
-                    style={[styles.rubricBtn, active && styles.rubricBtnActive]}
-                  >
-                    <Text
-                      style={[
-                        styles.rubricBtnText,
-                        active && styles.rubricBtnTextActive,
-                      ]}
-                    >
-                      {opt.label}{" "}
-                      <Text style={{ opacity: 0.7 }}>({opt.points}p)</Text>
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : (
-            <View style={styles.rubricRow5}>
-              {Array.from(
-                { length: item.max ?? 5 },
-                (_, i) => i + (item.min ?? 1),
-              ).map((n) => (
-                <Pressable
-                  key={n}
-                  onPress={() => setAnswers((a) => ({ ...a, [item.id]: n }))}
+      <View style={styles.scoreSummaryCard}>
+        <View style={styles.scoreCell}>
+          <Text style={styles.scoreCellValue}>
+            {scoreSummary.answered}/{scoreSummary.total}
+          </Text>
+          <Text style={styles.scoreCellLabel}>Madde</Text>
+        </View>
+        <View style={styles.scoreDivider} />
+        <View style={styles.scoreCell}>
+          <Text style={styles.scoreCellValue}>
+            {scoreSummary.checklistPts}/{scoreSummary.maxPts}
+          </Text>
+          <Text style={styles.scoreCellLabel}>Checklist</Text>
+        </View>
+        <View style={styles.scoreDivider} />
+        <View style={styles.scoreCell}>
+          <Text style={[styles.scoreCellValue, { color: colors.kou }]}>
+            %{combinedPct}
+          </Text>
+          <Text style={styles.scoreCellLabel}>Birleşik</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>Kontrol Listesi</Text>
+      {data.checklist.map((item, index) => {
+        const answered = answers[item.id] != null;
+        return (
+          <View key={item.id} style={[styles.card, styles.rubricCard]}>
+            <View style={styles.rubricHead}>
+              <View style={[styles.rubricIndex, answered && styles.rubricIndexDone]}>
+                <Text
                   style={[
-                    styles.likertBtn,
-                    answers[item.id] === n && styles.rubricBtnActive,
+                    styles.rubricIndexText,
+                    answered && styles.rubricIndexTextDone,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.likertText,
-                      answers[item.id] === n && styles.rubricBtnTextActive,
-                    ]}
-                  >
-                    {n}
-                  </Text>
-                </Pressable>
-              ))}
+                  {index + 1}
+                </Text>
+              </View>
+              <Text style={[styles.rubricQ, styles.flex1]}>{item.prompt}</Text>
             </View>
-          )}
-        </View>
-      ))}
+            {item.type === "tri" ? (
+              <View style={styles.rubricRow3}>
+                {(item.options ?? []).map((opt) => {
+                  const val = opt.id ?? opt.value ?? opt.label;
+                  const active = answers[item.id] === val;
+                  return (
+                    <Pressable
+                      key={val}
+                      onPress={() =>
+                        setAnswers((a) => ({ ...a, [item.id]: val }))
+                      }
+                      style={[styles.rubricBtn, active && styles.rubricBtnActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.rubricBtnText,
+                          active && styles.rubricBtnTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.rubricPts,
+                          active && styles.rubricBtnTextActive,
+                        ]}
+                      >
+                        {opt.points} puan
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.likertHint}>
+                  Likert ölçeği ({item.min ?? 1}–{item.max ?? 5})
+                </Text>
+                <View style={styles.rubricRow5}>
+                  {Array.from(
+                    { length: item.max ?? 5 },
+                    (_, i) => i + (item.min ?? 1),
+                  ).map((n) => (
+                    <Pressable
+                      key={n}
+                      onPress={() => setAnswers((a) => ({ ...a, [item.id]: n }))}
+                      style={[
+                        styles.likertBtn,
+                        answers[item.id] === n && styles.rubricBtnActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.likertText,
+                          answers[item.id] === n && styles.rubricBtnTextActive,
+                        ]}
+                      >
+                        {n}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        );
+      })}
 
+      <Text style={styles.sectionLabel}>Global Değerlendirme</Text>
       <View style={styles.card}>
         <View style={styles.rowBetween}>
-          <Text style={styles.rubricQ}>Global Rating Scale</Text>
+          <View style={styles.flex1}>
+            <Text style={styles.rubricQ}>Global Rating Scale (GRS)</Text>
+            <Text style={styles.meta}>
+              Genel klinik yeterlilik — checklist ağırlığı %70
+            </Text>
+          </View>
           <Text style={styles.globalPct}>%{global}</Text>
         </View>
         <RangeSlider value={global} onChange={setGlobal} />
+        <View style={styles.grsLabels}>
+          <Text style={styles.grsLabel}>Yetersiz</Text>
+          <Text style={styles.grsLabel}>Sınırda</Text>
+          <Text style={styles.grsLabel}>Yetkin</Text>
+        </View>
       </View>
 
       <Pressable
@@ -593,6 +747,7 @@ function RangeSlider({
   onChange: (v: number) => void;
 }) {
   const trackWidth = useRef(0);
+  const startX = useRef(0);
 
   const update = (x: number) => {
     const w = trackWidth.current;
@@ -603,9 +758,15 @@ function RangeSlider({
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => update(evt.nativeEvent.locationX),
-      onPanResponderMove: (evt) => update(evt.nativeEvent.locationX),
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        startX.current = evt.nativeEvent.locationX;
+        update(evt.nativeEvent.locationX);
+      },
+      onPanResponderMove: (_evt, g) => update(startX.current + g.dx),
     }),
   ).current;
 
@@ -639,6 +800,7 @@ const styles = StyleSheet.create({
   flex1: { flex: 1, minWidth: 0 },
   headerName: { fontSize: 14, fontWeight: "600", color: colors.white },
   headerSub: { fontSize: 11, color: colors.white60, marginTop: 2 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerPill: {
     borderRadius: 999,
     backgroundColor: colors.kou20,
@@ -646,6 +808,63 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   headerPillText: { fontSize: 10, fontWeight: "700", color: colors.white },
+  headerLogout: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.white10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  facultyProfileCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    backgroundColor: colors.white10,
+    padding: 14,
+  },
+  facultyProfileTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  facultyProfileHint: {
+    marginTop: 2,
+    marginBottom: 10,
+    fontSize: 11,
+    color: colors.white60,
+  },
+  facultyInfoRow: {
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.12)",
+  },
+  facultyInfoLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: colors.white60,
+    textTransform: "uppercase",
+  },
+  facultyInfoValue: {
+    marginTop: 2,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.white,
+  },
+  facultyLogoutBtn: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(239,68,68,0.15)",
+    paddingVertical: 10,
+  },
+  facultyLogoutText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FCA5A5",
+  },
   tabSwitch: {
     marginTop: 12,
     flexDirection: "row",
@@ -823,23 +1042,51 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  osceExamBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 20,
+    backgroundColor: colors.clinical,
+    padding: 16,
+  },
+  osceExamLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.white60,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  osceExamTitle: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.white,
+  },
   osceHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
   },
-  osceKicker: {
-    fontSize: 10,
+  stationBadge: {
+    borderRadius: 999,
+    backgroundColor: colors.kou10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  stationBadgeText: {
+    fontSize: 11,
     fontWeight: "700",
     color: colors.kou,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   osceTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    marginTop: 10,
+    fontSize: 15,
+    fontWeight: "700",
     color: colors.foreground,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   syncPill: {
     flexDirection: "row",
@@ -891,44 +1138,122 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontVariant: ["tabular-nums"],
   },
-  rubricQ: { fontSize: 12, fontWeight: "600", color: colors.foreground, lineHeight: 18 },
-  rubricRow3: { marginTop: 8, flexDirection: "row", gap: 8 },
+  scoreSummaryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  scoreCell: { flex: 1, alignItems: "center" },
+  scoreCellValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.foreground,
+  },
+  scoreCellLabel: {
+    marginTop: 2,
+    fontSize: 10,
+    fontWeight: "600",
+    color: colors.mutedForeground,
+    textTransform: "uppercase",
+  },
+  scoreDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: colors.border,
+  },
+  sectionLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  rubricCard: { borderWidth: 1, borderColor: colors.border },
+  rubricHead: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  rubricIndex: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rubricIndexDone: { backgroundColor: colors.kou },
+  rubricIndexText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.mutedForeground,
+  },
+  rubricIndexTextDone: { color: colors.kouForeground },
+  rubricQ: { fontSize: 13, fontWeight: "600", color: colors.foreground, lineHeight: 19 },
+  rubricRow3: { marginTop: 12, flexDirection: "row", gap: 8 },
   rubricRow5: { marginTop: 8, flexDirection: "row", gap: 8 },
   rubricBtn: {
     flex: 1,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
-    backgroundColor: colors.card,
-    paddingVertical: 8,
+    backgroundColor: colors.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     alignItems: "center",
   },
   rubricBtnActive: {
     borderColor: colors.kou,
     backgroundColor: colors.kou,
   },
-  rubricBtnText: { fontSize: 11, fontWeight: "600", color: colors.mutedForeground },
+  rubricBtnText: { fontSize: 11, fontWeight: "700", color: colors.foreground },
   rubricBtnTextActive: { color: colors.kouForeground },
+  rubricPts: {
+    marginTop: 2,
+    fontSize: 10,
+    fontWeight: "600",
+    color: colors.mutedForeground,
+  },
+  likertHint: {
+    marginTop: 10,
+    fontSize: 11,
+    color: colors.mutedForeground,
+  },
   likertBtn: {
     flex: 1,
     aspectRatio: 1,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
-    backgroundColor: colors.card,
+    backgroundColor: colors.secondary,
     alignItems: "center",
     justifyContent: "center",
   },
   likertText: { fontSize: 14, fontWeight: "700", color: colors.mutedForeground },
-  globalPct: { fontSize: 14, fontWeight: "700", color: colors.kou },
+  globalPct: { fontSize: 18, fontWeight: "800", color: colors.kou },
+  grsLabels: {
+    marginTop: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  grsLabel: { fontSize: 10, color: colors.mutedForeground, fontWeight: "600" },
   rowBetween: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   sliderTrack: {
-    marginTop: 12,
-    height: 8,
+    marginTop: 14,
+    height: 10,
     borderRadius: 999,
     backgroundColor: colors.muted,
     position: "relative",
@@ -944,13 +1269,18 @@ const styles = StyleSheet.create({
   },
   sliderThumb: {
     position: "absolute",
-    width: 20,
-    height: 20,
-    marginLeft: -10,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    marginLeft: -11,
+    borderRadius: 11,
     backgroundColor: colors.kou,
     borderWidth: 2,
     borderColor: colors.white,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
   completeBtn: {
     flexDirection: "row",

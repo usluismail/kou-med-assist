@@ -19,6 +19,7 @@ export default function RootLayout() {
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.background },
                 animation: "slide_from_right",
+                gestureEnabled: false,
               }}
             />
           </ToastProvider>

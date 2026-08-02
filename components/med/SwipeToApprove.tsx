@@ -22,6 +22,7 @@ export function SwipeToApprove({
   label?: string;
 }) {
   const trackWidth = useRef(0);
+  const startX = useRef(0);
   const [pct, setPct] = useState(0);
   const [dragging, setDragging] = useState(false);
 
@@ -34,20 +35,28 @@ export function SwipeToApprove({
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => !approved,
-      onMoveShouldSetPanResponder: () => !approved,
+      onMoveShouldSetPanResponder: (_, g) =>
+        !approved && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        !approved && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: (evt) => {
         if (approved) return;
         setDragging(true);
+        startX.current = evt.nativeEvent.locationX;
         setPct(calcPct(evt.nativeEvent.locationX));
       },
-      onPanResponderMove: (evt) => {
+      onPanResponderMove: (evt, g) => {
         if (approved) return;
-        setPct(calcPct(evt.nativeEvent.locationX));
+        // pageX relative fallback via dx from grant
+        const x = startX.current + g.dx;
+        setPct(calcPct(x));
       },
-      onPanResponderRelease: (evt) => {
+      onPanResponderRelease: (_evt, g) => {
         if (approved) return;
         setDragging(false);
-        const v = calcPct(evt.nativeEvent.locationX);
+        const v = calcPct(startX.current + g.dx);
         if (v > 0.92) {
           setPct(1);
           onApprove();
