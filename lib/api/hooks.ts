@@ -4,6 +4,8 @@ import { ApiError } from "./client";
 import {
   fetchColleagues,
   fetchLogs,
+  fetchOsceSessions,
+  fetchOsceStation,
   fetchPendingApprovals,
   fetchProcedures,
   fetchShifts,
@@ -13,6 +15,8 @@ import {
 import type {
   Colleague,
   LogEntry,
+  OsceSession,
+  OsceStation,
   PendingApproval,
   ProcedureProgress,
   Shift,
@@ -112,4 +116,19 @@ export function useColleagues(enabled = true): AsyncState<Colleague[]> {
 
 export function usePendingApprovals(enabled = true): AsyncState<PendingApproval[]> {
   return useAuthedResource(fetchPendingApprovals, enabled);
+}
+
+export function useOsceSessions(enabled = true): AsyncState<OsceSession[]> {
+  return useAuthedResource(fetchOsceSessions, enabled);
+}
+
+export function useOsceStation(
+  stationId: string,
+  enabled = true,
+): AsyncState<OsceStation> {
+  const loader = useCallback(
+    (token: string) => fetchOsceStation(token, stationId),
+    [stationId],
+  );
+  return useAuthedResource(loader, enabled && !!stationId);
 }

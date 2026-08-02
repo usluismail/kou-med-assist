@@ -113,6 +113,76 @@ export type SwapRequest = {
   status: string;
 };
 
+export type OsceStationProgress = {
+  id: string;
+  title: string;
+  status: "done" | "pending";
+  score: number | null;
+  subtitle: string;
+};
+
+export type OsceSession = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  status: string;
+  stationCount: number;
+  department?: string | null;
+  stations: OsceStationProgress[];
+};
+
+export type OsceChecklistOption = {
+  id?: string;
+  value?: string;
+  label: string;
+  points: number;
+};
+
+export type OsceChecklistItem = {
+  id: string;
+  prompt: string;
+  type: "tri" | "likert";
+  options?: OsceChecklistOption[];
+  min?: number;
+  max?: number;
+};
+
+export type OsceCandidate = {
+  id: string;
+  name: string;
+  code: string;
+  initials: string;
+  period?: string;
+  group: string;
+};
+
+export type OsceStation = {
+  id: string;
+  sessionId: string;
+  number: number;
+  title: string;
+  durationSec: number;
+  candidate: OsceCandidate;
+  checklist: OsceChecklistItem[];
+  globalDefault: number;
+};
+
+export type OsceScoreInput = {
+  sessionId: string;
+  stationId: string;
+  candidateId: string;
+  checklist: Record<string, string | number>;
+  globalScore: number;
+  offlineSyncedAt?: string | null;
+};
+
+export type OsceScore = OsceScoreInput & {
+  id: string;
+  scoredBy: string;
+  createdAt: string;
+};
+
 export type ApiErrorBody = {
   error?: string;
   message?: string;

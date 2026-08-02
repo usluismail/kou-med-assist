@@ -13,6 +13,10 @@ import type {
   CreateLogResponse,
   LoginResponse,
   LogEntry,
+  OsceScore,
+  OsceScoreInput,
+  OsceSession,
+  OsceStation,
   PendingApproval,
   ProcedureProgress,
   Shift,
@@ -22,6 +26,7 @@ import type {
   User,
   UserRole,
 } from "./types";
+import { adaptOsceStation } from "./adapters";
 
 export { clearSession, getStoredToken, getStoredUser, persistSession };
 
@@ -147,6 +152,36 @@ export async function validateQrPayload(
       method: "POST",
       token,
       body: { qrPayload },
+    }),
+  );
+}
+
+export async function fetchOsceSessions(token: string): Promise<OsceSession[]> {
+  return adaptIdentity(
+    await apiRequest<OsceSession[]>(endpoints.studentOsceSessions, { token }),
+  );
+}
+
+export async function fetchOsceStation(
+  token: string,
+  stationId: string,
+): Promise<OsceStation> {
+  const raw = await apiRequest<OsceStation>(
+    endpoints.facultyOsceStation(stationId),
+    { token },
+  );
+  return adaptOsceStation(raw);
+}
+
+export async function submitOsceScore(
+  token: string,
+  input: OsceScoreInput,
+): Promise<OsceScore> {
+  return adaptIdentity(
+    await apiRequest<OsceScore>(endpoints.facultyOsceScores, {
+      method: "POST",
+      token,
+      body: input,
     }),
   );
 }

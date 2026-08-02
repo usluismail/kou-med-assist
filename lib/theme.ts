@@ -37,3 +37,16 @@ export const colors = {
   warning10: "rgba(245,166,35,0.1)",
   info10: "rgba(59,130,246,0.1)",
 } as const;
+
+/** Dark mode token’ları (Sprint C — toggle sonra) */
+export const darkColors = {
+  background: "#0F1419",
+  foreground: "#F1F5F9",
+  card: "#1A2332",
+  surface: "#121820",
+  muted: "#243041",
+  mutedForeground: "#94A3B8",
+  border: "#2A3648",
+  secondary: "#1A2332",
+  secondaryForeground: "#CBD5E1",
+} as const;

@@ -320,6 +320,111 @@ function createRoutes(db) {
     );
   });
 
+  // —— OSCE (Sprint C) ——
+  router.get("/student/osce/sessions", auth, requireRole("student"), (req, res) => {
+    const progressRoot = db.studentOsceProgress?.[req.user.id] || {};
+    const enriched = db.osceSessions.map((session) => {
+      const prog = progressRoot[session.id] || {};
+      const stations = db.osceStations
+        .filter((s) => s.sessionId === session.id)
+        .map((s) => {
+          const p = prog[s.id] || { status: "pending", scorePct: null };
+          const done = p.status === "completed" || p.status === "done";
+          return {
+            id: s.id,
+            title: `İstasyon ${s.number}: ${s.title}`,
+            status: done ? "done" : "pending",
+            score: p.scorePct,
+            subtitle: done ? "Pratik tamamlandı" : "Deneme bekliyor",
+          };
+        });
+      return {
+        id: session.id,
+        title: session.title,
+        date: session.date,
+        time: session.time || "09:00",
+        status: session.status,
+        stationCount: stations.length || session.stationCount,
+        department: session.department || null,
+        stations,
+      };
+    });
+    res.json(enriched);
+  });
+
+  router.get(
+    "/faculty/osce/stations/:stationId",
+    auth,
+    requireRole("faculty"),
+    (req, res) => {
+      const station = db.osceStations.find((s) => s.id === req.params.stationId);
+      if (!station) {
+        return res.status(404).json({
+          error: "Not Found",
+          message: "İstasyon bulunamadı",
+        });
+      }
+      res.json({
+        ...station,
+        globalDefault: station.globalDefault ?? 65,
+        candidate: station.candidate || {
+          id: "cand-unknown",
+          name: "Aday",
+          code: "—",
+          initials: "—",
+          period: "Dönem 6",
+          group: "Grup A",
+        },
+        checklist: station.checklist || [],
+      });
+    }
+  );
+
+  router.post("/faculty/osce/scores", auth, requireRole("faculty"), (req, res) => {
+    const body = req.body || {};
+    const {
+      sessionId,
+      stationId,
+      candidateId,
+      checklist,
+      globalScore,
+      offlineSyncedAt,
+    } = body;
+    if (!sessionId || !stationId || !candidateId || globalScore == null) {
+      return res.status(422).json({
+        error: "Validation",
+        message: "sessionId, stationId, candidateId, globalScore zorunlu",
+      });
+    }
+    const score = {
+      id: `score-${crypto.randomBytes(4).toString("hex")}`,
+      sessionId,
+      stationId,
+      candidateId,
+      checklist: checklist || {},
+      globalScore: Number(globalScore),
+      offlineSyncedAt: offlineSyncedAt || null,
+      scoredBy: req.user.id,
+      createdAt: new Date().toISOString(),
+    };
+    if (!db.osceScores) db.osceScores = [];
+    db.osceScores.push(score);
+
+    // Öğrenci progress güncelle (tüm öğrenciler için demo)
+    if (!db.studentOsceProgress) db.studentOsceProgress = {};
+    for (const uid of Object.keys(db.studentOsceProgress)) {
+      if (!db.studentOsceProgress[uid][sessionId]) {
+        db.studentOsceProgress[uid][sessionId] = {};
+      }
+      db.studentOsceProgress[uid][sessionId][stationId] = {
+        status: "completed",
+        scorePct: Math.round(Number(globalScore)),
+      };
+    }
+
+    res.status(201).json(score);
+  });
+
   return router;
 }
 

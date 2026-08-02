@@ -22,10 +22,12 @@ import {
 import { SwipeToApprove } from "./SwipeToApprove";
 import { EmptyBlock, ErrorBlock, LoadingBlock } from "./StateViews";
 import { useAuth } from "@/lib/api/AuthContext";
-import { approveLog, requestRevision, validateQrPayload } from "@/lib/api";
-import { usePendingApprovals } from "@/lib/api/hooks";
+import { approveLog, requestRevision, submitOsceScore, validateQrPayload } from "@/lib/api";
+import { useOsceStation, usePendingApprovals } from "@/lib/api/hooks";
 import { relativeTimeTr } from "@/lib/api/labels";
 import type { PendingApproval } from "@/lib/api/types";
+import { hapticSuccess } from "@/lib/haptics";
+import { useToast } from "@/components/Toast";
 import { colors } from "@/lib/theme";
 
 type Tab = "pending" | "scanner" | "osce";
@@ -150,6 +152,7 @@ function ApprovalCard({
     setError(null);
     try {
       await approveLog(token, item.id, { note: note || undefined });
+      await hapticSuccess();
       setApproved(true);
       setTimeout(() => onChanged(), 600);
     } catch (e) {
@@ -392,11 +395,22 @@ function Scanner({ onApproved }: { onApproved?: () => void }) {
 }
 
 function OsceRubric() {
+  const { token } = useAuth();
+  const toast = useToast();
+  const stationId = "station-3";
+  const station = useOsceStation(stationId);
+  const data = station.data;
+
   const [seconds, setSeconds] = useState(255);
-  const [item1, setItem1] = useState<string | null>(null);
-  const [likert, setLikert] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [global, setGlobal] = useState(65);
-  const [online, setOnline] = useState(false);
+  const [online, setOnline] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data?.durationSec) setSeconds(data.durationSec);
+    if (data?.globalDefault != null) setGlobal(data.globalDefault);
+  }, [data?.durationSec, data?.globalDefault]);
 
   useEffect(() => {
     const t = setInterval(() => setSeconds((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -406,13 +420,46 @@ function OsceRubric() {
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
 
+  const save = async () => {
+    if (!token || !data) return;
+    setSaving(true);
+    try {
+      await submitOsceScore(token, {
+        sessionId: data.sessionId,
+        stationId: data.id,
+        candidateId: data.candidate.id,
+        checklist: answers,
+        globalScore: global,
+        offlineSyncedAt: online ? null : new Date().toISOString(),
+      });
+      await hapticSuccess();
+      toast.show("OSCE skoru kaydedildi", "success");
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : "Kayıt başarısız", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (station.loading && !data) {
+    return <LoadingBlock label="Rubrik yükleniyor…" />;
+  }
+  if (station.error && !data) {
+    return <ErrorBlock message={station.error} onRetry={station.reload} />;
+  }
+  if (!data) {
+    return <EmptyBlock message="İstasyon verisi yok" />;
+  }
+
+  const cand = data.candidate;
+
   return (
     <View style={styles.listPad}>
       <View style={styles.card}>
         <View style={styles.osceHeader}>
           <View style={styles.flex1}>
-            <Text style={styles.osceKicker}>İstasyon 3</Text>
-            <Text style={styles.osceTitle}>Solunum Sistemi Muayenesi</Text>
+            <Text style={styles.osceKicker}>İstasyon {data.number}</Text>
+            <Text style={styles.osceTitle}>{data.title}</Text>
           </View>
           <Pressable
             onPress={() => setOnline((v) => !v)}
@@ -438,13 +485,16 @@ function OsceRubric() {
         </View>
         <View style={styles.candidateRow}>
           <View style={styles.candidateAvatar}>
-            <Text style={styles.candidateInitials}>ZK</Text>
+            <Text style={styles.candidateInitials}>{cand.initials}</Text>
           </View>
           <View style={styles.flex1}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              Aday #104 - Zeynep Kaya
+              Aday #{cand.code} - {cand.name}
             </Text>
-            <Text style={styles.meta}>Dönem 6 · Grup B</Text>
+            <Text style={styles.meta}>
+              {cand.period ? `${cand.period} · ` : ""}
+              {cand.group}
+            </Text>
           </View>
           <View style={styles.timerBox}>
             <View style={styles.timerDot} />
@@ -455,51 +505,63 @@ function OsceRubric() {
         </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.rubricQ}>
-          1. Hastanın sırtını doğru pozisyonda oskülte etti.
-        </Text>
-        <View style={styles.rubricRow3}>
-          {(
-            [
-              ["Evet", "5p"],
-              ["Kısmen", "2.5p"],
-              ["Hayır", "0p"],
-            ] as Array<[string, string]>
-          ).map(([l, p]) => (
-            <Pressable
-              key={l}
-              onPress={() => setItem1(l)}
-              style={[styles.rubricBtn, item1 === l && styles.rubricBtnActive]}
-            >
-              <Text
-                style={[styles.rubricBtnText, item1 === l && styles.rubricBtnTextActive]}
-              >
-                {l} <Text style={{ opacity: 0.7 }}>({p})</Text>
-              </Text>
-            </Pressable>
-          ))}
+      {data.checklist.map((item) => (
+        <View key={item.id} style={styles.card}>
+          <Text style={styles.rubricQ}>{item.prompt}</Text>
+          {item.type === "tri" ? (
+            <View style={styles.rubricRow3}>
+              {(item.options ?? []).map((opt) => {
+                const val = opt.id ?? opt.value ?? opt.label;
+                const active = answers[item.id] === val;
+                return (
+                  <Pressable
+                    key={val}
+                    onPress={() =>
+                      setAnswers((a) => ({ ...a, [item.id]: val }))
+                    }
+                    style={[styles.rubricBtn, active && styles.rubricBtnActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.rubricBtnText,
+                        active && styles.rubricBtnTextActive,
+                      ]}
+                    >
+                      {opt.label}{" "}
+                      <Text style={{ opacity: 0.7 }}>({opt.points}p)</Text>
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.rubricRow5}>
+              {Array.from(
+                { length: item.max ?? 5 },
+                (_, i) => i + (item.min ?? 1),
+              ).map((n) => (
+                <Pressable
+                  key={n}
+                  onPress={() => setAnswers((a) => ({ ...a, [item.id]: n }))}
+                  style={[
+                    styles.likertBtn,
+                    answers[item.id] === n && styles.rubricBtnActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.likertText,
+                      answers[item.id] === n && styles.rubricBtnTextActive,
+                    ]}
+                  >
+                    {n}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.rubricQ}>2. İletişim ve aydınlatılmış onam.</Text>
-        <View style={styles.rubricRow5}>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <Pressable
-              key={n}
-              onPress={() => setLikert(n)}
-              style={[styles.likertBtn, likert === n && styles.rubricBtnActive]}
-            >
-              <Text
-                style={[styles.likertText, likert === n && styles.rubricBtnTextActive]}
-              >
-                {n}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      ))}
 
       <View style={styles.card}>
         <View style={styles.rowBetween}>
@@ -509,9 +571,15 @@ function OsceRubric() {
         <RangeSlider value={global} onChange={setGlobal} />
       </View>
 
-      <Pressable style={styles.completeBtn}>
+      <Pressable
+        onPress={save}
+        disabled={saving}
+        style={[styles.completeBtn, saving && { opacity: 0.6 }]}
+      >
         <Stethoscope size={16} color={colors.kouForeground} />
-        <Text style={styles.completeBtnText}>İstasyonu Tamamla ve Kaydet</Text>
+        <Text style={styles.completeBtnText}>
+          {saving ? "Kaydediliyor…" : "İstasyonu Tamamla ve Kaydet"}
+        </Text>
       </Pressable>
     </View>
   );

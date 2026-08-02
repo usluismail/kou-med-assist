@@ -183,11 +183,81 @@ const osceSessions = [
   {
     id: "osce-1",
     title: "Acil Tıp OSCE Sınavı",
-    date: "2026-08-10",
+    date: "2026-08-28",
+    time: "09:00",
     status: "upcoming",
-    stations: 8,
+    stationCount: 4,
+    department: "Acil Tıp",
   },
 ];
+
+const osceStations = [
+  {
+    id: "station-1",
+    sessionId: "osce-1",
+    number: 1,
+    title: "Temel Yaşam Desteği",
+    durationSec: 300,
+  },
+  {
+    id: "station-2",
+    sessionId: "osce-1",
+    number: 2,
+    title: "EKG Yorumlama",
+    durationSec: 300,
+  },
+  {
+    id: "station-3",
+    sessionId: "osce-1",
+    number: 3,
+    title: "Solunum Sistemi Muayenesi",
+    durationSec: 255,
+    candidate: {
+      id: "cand-zk",
+      name: "Zeynep Kaya",
+      code: "104",
+      initials: "ZK",
+      group: "Dönem 6 · Grup B",
+    },
+    checklist: [
+      {
+        id: "q1",
+        prompt: "1. Hastanın sırtını doğru pozisyonda oskülte etti.",
+        type: "tri",
+        options: [
+          { value: "yes", label: "Evet", points: 5 },
+          { value: "partial", label: "Kısmen", points: 2.5 },
+          { value: "no", label: "Hayır", points: 0 },
+        ],
+      },
+      {
+        id: "q2",
+        prompt: "2. İletişim ve aydınlatılmış onam.",
+        type: "likert",
+        max: 5,
+      },
+    ],
+  },
+  {
+    id: "station-4",
+    sessionId: "osce-1",
+    number: 4,
+    title: "Sutür ve Yara Bakımı",
+    durationSec: 300,
+  },
+];
+
+/** Öğrenci görünümü için istasyon ilerleme (seed) */
+const studentOsceProgress = {
+  "user-student-1": {
+    "osce-1": {
+      "station-1": { status: "completed", scorePct: 92 },
+      "station-2": { status: "completed", scorePct: 88 },
+      "station-3": { status: "pending", scorePct: null },
+      "station-4": { status: "pending", scorePct: null },
+    },
+  },
+};
 
 module.exports = {
   users,
@@ -198,4 +268,6 @@ module.exports = {
   pendingApprovals,
   colleagues,
   osceSessions,
+  osceStations,
+  studentOsceProgress,
 };

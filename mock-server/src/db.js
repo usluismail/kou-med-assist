@@ -11,6 +11,9 @@ function createDb() {
     pendingApprovals: structuredClone(seed.pendingApprovals),
     colleagues: structuredClone(seed.colleagues),
     osceSessions: structuredClone(seed.osceSessions),
+    osceStations: structuredClone(seed.osceStations),
+    studentOsceProgress: structuredClone(seed.studentOsceProgress || {}),
+    osceScores: [],
     /** token → userId */
     sessions: new Map(),
     /** qrPayload → logId */

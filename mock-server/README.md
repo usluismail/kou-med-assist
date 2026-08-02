@@ -94,6 +94,14 @@ Yazma endpoint’leri (POST log, approve…) **Sprint B**.
 | POST | `/faculty/approvals/:id/request-revision` | faculty |
 | POST | `/faculty/approvals/qr` | faculty |
 
+## Sprint C — OSCE
+
+| Method | Path | Rol |
+|--------|------|-----|
+| GET | `/student/osce/sessions` | student |
+| GET | `/faculty/osce/stations/:stationId` | faculty |
+| POST | `/faculty/osce/scores` | faculty |
+
 ```bash
 # Log oluştur (push)
 curl -s -X POST http://localhost:3001/student/logs \

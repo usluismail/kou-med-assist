@@ -16,6 +16,7 @@
     "clsx": "^2.1.1",
     "expo": "~57.0.9",
     "expo-constants": "~57.0.8",
+    "expo-haptics": "^57.0.1",
     "expo-image": "~57.0.1",
     "expo-linking": "~57.0.4",
     "expo-router": "~57.0.9",

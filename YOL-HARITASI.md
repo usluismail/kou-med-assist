@@ -455,28 +455,28 @@ Her sprint’te maddeler **yukarıdan aşağı** yapılır. Bir sprint’in biti
 
 **Backend**
 
-- [ ] C1. `GET /student/osce/sessions`
-- [ ] C2. `GET /faculty/osce/stations/:stationId`
-- [ ] C3. `POST /faculty/osce/scores` (offlineSyncedAt alanı opsiyonel tutulsun)
-- [ ] C4. Adapter testi: kasıtlı “farklı JSON” örneği + `adapters.ts` map’i (hoca şeması simülasyonu)
+- [x] C1. `GET /student/osce/sessions`
+- [x] C2. `GET /faculty/osce/stations/:stationId`
+- [x] C3. `POST /faculty/osce/scores` (offlineSyncedAt alanı opsiyonel tutulsun)
+- [x] C4. Adapter testi: kasıtlı “farklı JSON” örneği + `adapters.ts` map’i (hoca şeması simülasyonu)
 
 **Frontend**
 
-- [ ] C5. Öğrenci OSCE sekmesi ← sessions API
-- [ ] C6. Akademisyen OSCE rubrik ← station API; kayıt → scores POST
-- [ ] C7. QR tarayıcı sekmesi: kamera yokken manuel payload girişi → `POST /faculty/approvals/qr`
-- [ ] C8. Talk-to-Text: UI akışı korunur; metin alana yazılır (gerçek speech **E**)
-- [ ] C9. Tüm bağlı ekranlarda: loading / empty / error
-- [ ] C10. Basit toast veya banner (ağ, 401, 422)
-- [ ] C11. Enum ↔ Türkçe etiket map (role, status)
-- [ ] C12. Dark mode token’ları `theme.ts`’e ekle (toggle opsiyonel)
-- [ ] C13. Haptic: onay + log gönderim (`expo-haptics`)
+- [x] C5. Öğrenci OSCE sekmesi ← sessions API
+- [x] C6. Akademisyen OSCE rubrik ← station API; kayıt → scores POST
+- [x] C7. QR tarayıcı sekmesi: kamera yokken manuel payload girişi → `POST /faculty/approvals/qr`
+- [x] C8. Talk-to-Text: UI akışı korunur; metin alana yazılır (gerçek speech **E**)
+- [x] C9. Tüm bağlı ekranlarda: loading / empty / error
+- [x] C10. Basit toast veya banner (ağ, 401, 422)
+- [x] C11. Enum ↔ Türkçe etiket map (role, status)
+- [x] C12. Dark mode token’ları `theme.ts`’e ekle (toggle opsiyonel)
+- [x] C13. Haptic: onay + log gönderim (`expo-haptics`)
 - [ ] C14. `StudentApp` / `FacultyApp` dosyalarını alt bileşenlere böl (okunabilirlik)
 
 **Dokümantasyon / teslim**
 
-- [ ] C15. Hoca için kısa API sözleşme özeti (path + örnek request/response)
-- [ ] C16. Geçiş notu: “Gerçek URL gelince sadece env + adapter”
+- [x] C15. Hoca için kısa API sözleşme özeti (path + örnek request/response)
+- [x] C16. Geçiş notu: “Gerçek URL gelince sadece env + adapter”
 
 **Bitiş kriteri:** OSCE skor mock’a yazılır; tüm ana sekmeler API’den beslenir; loading/empty/error tutarlı; sözleşme dokümanı paylaşılabilir.
 
