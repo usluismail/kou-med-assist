@@ -15,11 +15,16 @@ import {
   fetchAdvisor,
   fetchGrades,
   fetchAnnouncements,
+  fetchInternship,
+  fetchClinicalSchedule,
 } from "./index";
+
 import type {
   Advisor,
   Announcement,
+  ClinicalScheduleDay,
   Colleague,
+  InternshipBlock,
   Lesson,
   LogEntry,
   OsceSession,
@@ -186,4 +191,22 @@ export function useGrades(enabled = true): AsyncState<StudentGrades> {
 
 export function useAnnouncements(): AsyncState<Announcement[]> {
   return usePublicResource(fetchAnnouncements);
+}
+
+// ── Klinik Staj (Dönem 4-5) hooks ──
+
+export function useInternship(enabled = true): AsyncState<InternshipBlock> {
+  return useAuthedResource(fetchInternship, enabled);
+}
+
+export function useClinicalSchedule(enabled = true): AsyncState<ClinicalScheduleDay[]> {
+  return useAuthedResource(fetchClinicalSchedule, enabled);
+}
+
+/**
+ * useAuthedFetch — genel amaçlı generic hook
+ * KlinikApp gibi bileşenlerde doğrudan fetch fonksiyonu ile kullanılabilir.
+ */
+export function useAuthedFetch<T>(loader: (token: string) => Promise<T>, enabled = true): AsyncState<T> {
+  return useAuthedResource(loader, enabled);
 }

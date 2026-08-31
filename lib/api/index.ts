@@ -187,7 +187,7 @@ export async function submitOsceScore(
 }
 
 // ─── Pre-Klinik (Dönem 1-3) ───
-import type { Advisor, Lesson, StudentGrades, Announcement } from "./types";
+import type { Advisor, Lesson, StudentGrades, Announcement, InternshipBlock, ClinicalScheduleDay } from "./types";
 
 export async function fetchSchedule(token: string): Promise<Lesson[]> {
   return adaptIdentity(
@@ -210,5 +210,19 @@ export async function fetchGrades(token: string): Promise<StudentGrades> {
 export async function fetchAnnouncements(): Promise<Announcement[]> {
   return adaptIdentity(
     await apiRequest<Announcement[]>(endpoints.announcements, {}),
+  );
+}
+
+// ─── Klinik Staj (Dönem 4-5) ───
+
+export async function fetchInternship(token: string): Promise<InternshipBlock> {
+  return adaptIdentity(
+    await apiRequest<InternshipBlock>(endpoints.studentInternship, { token }),
+  );
+}
+
+export async function fetchClinicalSchedule(token: string): Promise<ClinicalScheduleDay[]> {
+  return adaptIdentity(
+    await apiRequest<ClinicalScheduleDay[]>(endpoints.studentClinicalSchedule, { token }),
   );
 }
