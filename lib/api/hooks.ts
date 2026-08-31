@@ -11,9 +11,16 @@ import {
   fetchShifts,
   fetchStudentDashboard,
   fetchSupervisors,
+  fetchSchedule,
+  fetchAdvisor,
+  fetchGrades,
+  fetchAnnouncements,
 } from "./index";
 import type {
+  Advisor,
+  Announcement,
   Colleague,
+  Lesson,
   LogEntry,
   OsceSession,
   OsceStation,
@@ -21,6 +28,7 @@ import type {
   ProcedureProgress,
   Shift,
   StudentDashboard,
+  StudentGrades,
   Supervisor,
 } from "./types";
 
@@ -90,6 +98,35 @@ function useAuthedResource<T>(
   return { data, loading, error, reload };
 }
 
+// Public (auth gerektirmeyen) kaynak hook'u
+function usePublicResource<T>(loader: () => Promise<T>): AsyncState<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  const loaderRef = useRef(loader);
+  loaderRef.current = loader;
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    loaderRef.current().then((res) => {
+      if (!cancelled) { setData(res); setLoading(false); }
+    }).catch((e: unknown) => {
+      if (!cancelled) {
+        setError(e instanceof Error ? e.message : "Yüklenemedi");
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [tick]);
+
+  return { data, loading, error, reload };
+}
+
+// ── Dönem 6 / Logbook hooks ──
+
 export function useStudentDashboard(enabled = true): AsyncState<StudentDashboard> {
   return useAuthedResource(fetchStudentDashboard, enabled);
 }
@@ -131,4 +168,22 @@ export function useOsceStation(
     [stationId],
   );
   return useAuthedResource(loader, enabled && !!stationId);
+}
+
+// ── Pre-Klinik (Dönem 1-3) hooks ──
+
+export function useSchedule(enabled = true): AsyncState<Lesson[]> {
+  return useAuthedResource(fetchSchedule, enabled);
+}
+
+export function useAdvisor(enabled = true): AsyncState<Advisor> {
+  return useAuthedResource(fetchAdvisor, enabled);
+}
+
+export function useGrades(enabled = true): AsyncState<StudentGrades> {
+  return useAuthedResource(fetchGrades, enabled);
+}
+
+export function useAnnouncements(): AsyncState<Announcement[]> {
+  return usePublicResource(fetchAnnouncements);
 }

@@ -310,12 +310,29 @@ export type EKarne = {
   generatedAt: string;
 };
 
+export type StudentGrades = {
+  period: number;
+  gpa: number;
+  committees: {
+    id: string;
+    name: string;
+    status: "completed" | "ongoing" | "future";
+    courses: {
+      name: string;
+      score: number | null;
+      letterGrade: string | null;
+      passed: boolean | null;
+    }[];
+  }[];
+};
+
 export type PdfGenerateResponse = {
   ok: boolean;
   pdfUrl: string;
   generatedAt: string;
   message: string;
 };
+
 
 // ─────────────────────────────────────────────────────────
 // İLETİŞİM MERKEZİ

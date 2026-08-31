@@ -18,6 +18,7 @@ function createDb() {
 
     // ── İntörn (Dönem 6) ──
     eKarne: structuredClone(seed.eKarne || {}),
+    grades: structuredClone(seed.grades || {}),
     procedures: structuredClone(seed.procedures),
     logs: structuredClone(seed.logs),
     shifts: structuredClone(seed.shifts),

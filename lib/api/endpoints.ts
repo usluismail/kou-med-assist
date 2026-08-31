@@ -19,6 +19,7 @@ export const endpoints = {
   // ── Öğrenci — Dönem 1-2-3 (Pre-Klinik) ──
   studentSchedule: "/student/schedule",
   studentAdvisor: "/student/advisor",
+  studentGrades: "/student/grades",
 
   // ── Öğrenci — Dönem 4-5 (Klinik Staj) ──
   studentInternship: "/student/internship",

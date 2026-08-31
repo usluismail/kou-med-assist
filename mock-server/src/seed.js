@@ -811,6 +811,132 @@ const studentOsceProgress = {
   },
 };
 
+// ─────────────────────────────────────────────────────────
+// NOT / KURUL SONUÇLARI (Pre-Klinik Dönem 1-3)
+// ─────────────────────────────────────────────────────────
+const grades = {
+  "user-student-d1": {
+    period: 1,
+    gpa: 3.1,
+    committees: [
+      {
+        id: "c1-k1",
+        name: "1. Kurul: Hücre Biyolojisi",
+        status: "completed",
+        courses: [
+          { name: "Anatomi I", score: 74, letterGrade: "CB", passed: true },
+          { name: "Fizyoloji I", score: 68, letterGrade: "CC", passed: true },
+          { name: "Histoloji ve Embriyoloji", score: 71, letterGrade: "CB", passed: true },
+          { name: "Tıbbi Biyoloji ve Genetik", score: 65, letterGrade: "CC", passed: true },
+          { name: "Davranış Bilimleri", score: 80, letterGrade: "BA", passed: true },
+        ],
+      },
+      {
+        id: "c1-k2",
+        name: "2. Kurul: Kas-İskelet Sistemi",
+        status: "ongoing",
+        courses: [
+          { name: "Anatomi I", score: null, letterGrade: null, passed: null },
+          { name: "Fizyoloji I", score: null, letterGrade: null, passed: null },
+          { name: "Tıbbi Biyokimya", score: null, letterGrade: null, passed: null },
+          { name: "Histoloji ve Embriyoloji", score: null, letterGrade: null, passed: null },
+        ],
+      },
+    ],
+  },
+  "user-student-d2": {
+    period: 2,
+    gpa: 3.4,
+    committees: [
+      {
+        id: "c2-k1",
+        name: "1. Kurul: Kardiyovasküler Sistem",
+        status: "completed",
+        courses: [
+          { name: "Anatomi II", score: 82, letterGrade: "BA", passed: true },
+          { name: "Fizyoloji II", score: 78, letterGrade: "BB", passed: true },
+          { name: "Patoloji I", score: 72, letterGrade: "CB", passed: true },
+          { name: "Farmakoloji I", score: 69, letterGrade: "CC", passed: true },
+          { name: "Mikrobiyoloji", score: 85, letterGrade: "BA", passed: true },
+        ],
+      },
+      {
+        id: "c2-k2",
+        name: "2. Kurul: Solunum Sistemi",
+        status: "completed",
+        courses: [
+          { name: "Anatomi II", score: 79, letterGrade: "BB", passed: true },
+          { name: "Fizyoloji II", score: 74, letterGrade: "CB", passed: true },
+          { name: "Patoloji I", score: 68, letterGrade: "CC", passed: true },
+          { name: "Farmakoloji I", score: 76, letterGrade: "BB", passed: true },
+        ],
+      },
+      {
+        id: "c2-k3",
+        name: "3. Kurul: Dolaşım ve Solunum Sistemi",
+        status: "ongoing",
+        courses: [
+          { name: "Anatomi II", score: null, letterGrade: null, passed: null },
+          { name: "Fizyoloji II", score: null, letterGrade: null, passed: null },
+          { name: "Mikrobiyoloji", score: null, letterGrade: null, passed: null },
+          { name: "Patoloji I", score: null, letterGrade: null, passed: null },
+          { name: "Tıp Tarihi ve Deontoloji", score: null, letterGrade: null, passed: null },
+        ],
+      },
+    ],
+  },
+  "user-student-d3": {
+    period: 3,
+    gpa: 3.7,
+    committees: [
+      {
+        id: "c3-k1",
+        name: "1. Kurul: Endokrin ve Metabolizma",
+        status: "completed",
+        courses: [
+          { name: "Patoloji II", score: 88, letterGrade: "AA", passed: true },
+          { name: "Farmakoloji II", score: 84, letterGrade: "BA", passed: true },
+          { name: "Mikrobiyoloji II", score: 79, letterGrade: "BB", passed: true },
+          { name: "Biyoistatistik", score: 90, letterGrade: "AA", passed: true },
+        ],
+      },
+      {
+        id: "c3-k2",
+        name: "2. Kurul: Üreme ve Gelişim",
+        status: "completed",
+        courses: [
+          { name: "Patoloji II", score: 85, letterGrade: "BA", passed: true },
+          { name: "Farmakoloji II", score: 80, letterGrade: "BA", passed: true },
+          { name: "Parazitoloji", score: 77, letterGrade: "BB", passed: true },
+          { name: "Klinik Öncesi Beceriler", score: 92, letterGrade: "AA", passed: true },
+        ],
+      },
+      {
+        id: "c3-k3",
+        name: "3. Kurul: Sindirim Sistemi",
+        status: "completed",
+        courses: [
+          { name: "Nöroanatomi", score: 83, letterGrade: "BA", passed: true },
+          { name: "Patoloji II", score: 81, letterGrade: "BA", passed: true },
+          { name: "Mikrobiyoloji II", score: 76, letterGrade: "BB", passed: true },
+          { name: "Biyoistatistik", score: 88, letterGrade: "AA", passed: true },
+        ],
+      },
+      {
+        id: "c3-k4",
+        name: "4. Kurul: Sinir Sistemi ve Duyular",
+        status: "ongoing",
+        courses: [
+          { name: "Nöroanatomi", score: null, letterGrade: null, passed: null },
+          { name: "Patoloji II", score: null, letterGrade: null, passed: null },
+          { name: "Farmakoloji II", score: null, letterGrade: null, passed: null },
+          { name: "Parazitoloji", score: null, letterGrade: null, passed: null },
+        ],
+      },
+    ],
+  },
+};
+
 module.exports = {
   users,
   supervisors,
@@ -829,4 +955,5 @@ module.exports = {
   eKarne,
   messages,
   announcements,
+  grades,
 };

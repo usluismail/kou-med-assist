@@ -722,6 +722,19 @@ function createRoutes(db) {
     res.json(students);
   });
 
+  // ════════════════════════════════════════════════════
+  // DÖNEM 1-3: NOT SONUÇLARI
+  // ════════════════════════════════════════════════════
+
+  /** GET /student/grades — kurul bazlı not durumu */
+  router.get("/student/grades", auth, requireRole("student"), (req, res) => {
+    const studentGrades = db.grades[req.user.id];
+    if (!studentGrades) {
+      return res.status(404).json({ error: "Not Found", message: "Bu dönem için not verisi bulunamadı" });
+    }
+    res.json(studentGrades);
+  });
+
   return router;
 }
 

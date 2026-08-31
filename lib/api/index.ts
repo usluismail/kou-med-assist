@@ -185,3 +185,30 @@ export async function submitOsceScore(
     }),
   );
 }
+
+// ─── Pre-Klinik (Dönem 1-3) ───
+import type { Advisor, Lesson, StudentGrades, Announcement } from "./types";
+
+export async function fetchSchedule(token: string): Promise<Lesson[]> {
+  return adaptIdentity(
+    await apiRequest<Lesson[]>(endpoints.studentSchedule, { token }),
+  );
+}
+
+export async function fetchAdvisor(token: string): Promise<Advisor> {
+  return adaptIdentity(
+    await apiRequest<Advisor>(endpoints.studentAdvisor, { token }),
+  );
+}
+
+export async function fetchGrades(token: string): Promise<StudentGrades> {
+  return adaptIdentity(
+    await apiRequest<StudentGrades>(endpoints.studentGrades, { token }),
+  );
+}
+
+export async function fetchAnnouncements(): Promise<Announcement[]> {
+  return adaptIdentity(
+    await apiRequest<Announcement[]>(endpoints.announcements, {}),
+  );
+}
