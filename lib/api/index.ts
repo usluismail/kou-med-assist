@@ -226,3 +226,23 @@ export async function fetchClinicalSchedule(token: string): Promise<ClinicalSche
     await apiRequest<ClinicalScheduleDay[]>(endpoints.studentClinicalSchedule, { token }),
   );
 }
+
+// ─── İletişim Merkezi (Mesajlar) ───
+import type { Message, SendMessageInput } from "./types";
+
+export async function fetchMessages(token: string): Promise<Message[]> {
+  return adaptIdentity(
+    await apiRequest<Message[]>(endpoints.messages, { token }),
+  );
+}
+
+export async function sendMessage(token: string, payload: SendMessageInput): Promise<Message> {
+  return adaptIdentity(
+    await apiRequest<Message>(endpoints.sendMessage, {
+      method: "POST",
+      token,
+      body: payload,
+    }),
+  );
+}
+

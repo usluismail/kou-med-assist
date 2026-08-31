@@ -126,14 +126,9 @@ function LoginForm({
   const [remember, setRemember] = useState(false);
   const valid = identifier.trim().length > 2 && password.length >= 4;
 
-  const fillDemo = () => {
-    if (student) {
-      setIdentifier("ahmet.yilmaz@kocaeli.edu.tr");
-      setPassword("ogrenci123");
-    } else {
-      setIdentifier("ayse.kaya@kocaeli.edu.tr");
-      setPassword("hoca123");
-    }
+  const fillDemo = (email: string, pass: string) => {
+    setIdentifier(email);
+    setPassword(pass);
   };
 
   const submit = async () => {
@@ -203,11 +198,23 @@ function LoginForm({
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Pressable onPress={fillDemo} style={styles.demoBtn}>
-        <Text style={styles.demoBtnText}>
-          Demo hesabı doldur (geliştirme)
-        </Text>
-      </Pressable>
+      {student ? (
+        <View style={{ gap: 4, marginTop: 12 }}>
+          <Pressable onPress={() => fillDemo("can.yilmaz@kocaeli.edu.tr", "ogrenci123")} style={styles.demoBtnGroup}>
+            <Text style={styles.demoBtnText}>Dönem 1-3 Demo Doldur (Pre-Klinik)</Text>
+          </Pressable>
+          <Pressable onPress={() => fillDemo("elif.demir@kocaeli.edu.tr", "ogrenci123")} style={styles.demoBtnGroup}>
+            <Text style={styles.demoBtnText}>Dönem 4-5 Demo Doldur (Klinik)</Text>
+          </Pressable>
+          <Pressable onPress={() => fillDemo("ahmet.yilmaz@kocaeli.edu.tr", "ogrenci123")} style={styles.demoBtnGroup}>
+            <Text style={styles.demoBtnText}>Dönem 6 Demo Doldur (İntörn)</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable onPress={() => fillDemo("ayse.kaya@kocaeli.edu.tr", "hoca123")} style={styles.demoBtn}>
+          <Text style={styles.demoBtnText}>Demo hesabı doldur (Hoca)</Text>
+        </Pressable>
+      )}
 
       <View style={styles.rowBetween}>
         <Pressable
@@ -387,6 +394,10 @@ const styles = StyleSheet.create({
   },
   demoBtn: {
     marginTop: 12,
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+  },
+  demoBtnGroup: {
     alignSelf: "flex-start",
     paddingVertical: 6,
   },

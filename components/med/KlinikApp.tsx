@@ -26,11 +26,13 @@ import {
   LogOut,
   Mail,
   MapPin,
+  MessageCircle,
   Stethoscope,
   User,
   Users,
   Clock,
 } from "lucide-react-native";
+import { MessageSheet } from "./MessageSheet";
 import { EmptyBlock, ErrorBlock, LoadingBlock } from "./StateViews";
 import { useAuth } from "@/lib/api/AuthContext";
 import {
@@ -62,6 +64,7 @@ function getWeekDayIndex(dateStr: string): number {
 // ─── Ana bileşen ─────────────────────────────────────────
 export function KlinikApp() {
   const [tab, setTab] = useState<Tab>("home");
+  const [messageOpen, setMessageOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
   return (
@@ -74,7 +77,7 @@ export function KlinikApp() {
         {tab === "home"     && <HomeTab />}
         {tab === "schedule" && <ScheduleTab />}
         {tab === "logbook"  && <LogbookTab />}
-        {tab === "profile"  && <ProfileTab />}
+        {tab === "profile"  && <ProfileTab onOpenMessage={() => setMessageOpen(true)} />}
       </ScrollView>
 
       {/* Tab Bar */}
@@ -106,6 +109,8 @@ export function KlinikApp() {
           );
         })}
       </View>
+
+      <MessageSheet open={messageOpen} onClose={() => setMessageOpen(false)} defaultRecipient="internship_supervisor" />
     </View>
   );
 }
@@ -455,7 +460,7 @@ function LogbookTab() {
 // ════════════════════════════════════════════════════════
 // TAB 4 — PROFİL
 // ════════════════════════════════════════════════════════
-function ProfileTab() {
+function ProfileTab({ onOpenMessage }: { onOpenMessage: () => void }) {
   const { user, logout } = useAuth();
   const internship = useAuthedFetch(fetchInternship);
   const insets = useSafeAreaInsets();
@@ -506,6 +511,24 @@ function ProfileTab() {
             </View>
           </View>
         )}
+
+        {/* İletişim Merkezi */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <View style={[s.softIcon, { backgroundColor: colors.kou10 }]}><MessageCircle size={16} color={colors.primary} /></View>
+            <Text style={s.cardTitle}>İletişim Merkezi</Text>
+          </View>
+          <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 16, lineHeight: 20 }}>
+            Öğrenci işleri, danışman veya staj sorumlusuna doğrudan uygulama içinden mesaj gönderebilirsiniz.
+          </Text>
+          <Pressable
+            style={s.advisorBtnFill}
+            onPress={onOpenMessage}
+          >
+            <MessageCircle size={14} color={colors.white} />
+            <Text style={s.advisorBtnFillText}>Mesaj Gönder</Text>
+          </Pressable>
+        </View>
 
         {/* Çıkış */}
         <Pressable
@@ -691,6 +714,13 @@ const s = StyleSheet.create({
   infoRow:  { flexDirection: "row", paddingVertical: 7, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 },
   infoLabel: { width: 100, fontSize: 12, color: colors.mutedForeground },
   infoValue: { flex: 1, fontSize: 13, color: colors.foreground, fontWeight: "500" },
+
+  advisorBtns: { flexDirection: "row", gap: 10, marginTop: 4 },
+  advisorBtnFill: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, backgroundColor: colors.primary, paddingVertical: 10, borderRadius: 10,
+  },
+  advisorBtnFillText: { fontSize: 12, fontWeight: "600", color: colors.white },
 
   logoutBtn: {
     flexDirection: "row", alignItems: "center", gap: 10,

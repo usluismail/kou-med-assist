@@ -210,3 +210,12 @@ export function useClinicalSchedule(enabled = true): AsyncState<ClinicalSchedule
 export function useAuthedFetch<T>(loader: (token: string) => Promise<T>, enabled = true): AsyncState<T> {
   return useAuthedResource(loader, enabled);
 }
+
+// ── İletişim Merkezi ──
+import type { Message } from "./types";
+import { fetchMessages } from "./index";
+
+export function useMessages(enabled = true): AsyncState<Message[]> {
+  return useAuthedResource(fetchMessages, enabled);
+}
+

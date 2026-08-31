@@ -25,9 +25,10 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Phone,
+  Phone, // unused but kept for imports safety
   User,
 } from "lucide-react-native";
+import { MessageSheet } from "./MessageSheet";
 import { EmptyBlock, ErrorBlock, LoadingBlock } from "./StateViews";
 import { useAuth } from "@/lib/api/AuthContext";
 import {
@@ -70,6 +71,7 @@ type Tab = "home" | "schedule" | "grades" | "profile";
 // ─── Ana bileşen ──────────────────────────────────────────
 export function PreKlinikApp() {
   const [tab, setTab] = useState<Tab>("home");
+  const [messageOpen, setMessageOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
   return (
@@ -79,10 +81,10 @@ export function PreKlinikApp() {
         contentContainerStyle={[s.scrollContent, { paddingBottom: 88 + Math.max(insets.bottom, 8) }]}
         showsVerticalScrollIndicator={false}
       >
-        {tab === "home" && <HomeTab />}
+        {tab === "home" && <HomeTab onOpenMessage={() => setMessageOpen(true)} />}
         {tab === "schedule" && <ScheduleTab />}
         {tab === "grades" && <GradesTab />}
-        {tab === "profile" && <ProfileTab />}
+        {tab === "profile" && <ProfileTab onOpenMessage={() => setMessageOpen(true)} />}
       </ScrollView>
 
       {/* Tab Bar */}
@@ -114,6 +116,8 @@ export function PreKlinikApp() {
           );
         })}
       </View>
+
+      <MessageSheet open={messageOpen} onClose={() => setMessageOpen(false)} />
     </View>
   );
 }
@@ -121,7 +125,7 @@ export function PreKlinikApp() {
 // ═══════════════════════════════════════════════════════════
 // TAB 1 — ANA SAYFA
 // ═══════════════════════════════════════════════════════════
-function HomeTab() {
+function HomeTab({ onOpenMessage }: { onOpenMessage: () => void }) {
   const { user } = useAuth();
   const schedule = useSchedule();
   const advisor = useAdvisor();
@@ -287,45 +291,7 @@ function HomeTab() {
           )}
         </View>
 
-        {/* Danışman Hoca */}
-        {advisor.data && (
-          <View style={s.card}>
-            <View style={s.cardHeader}>
-              <View style={s.softIcon}><User size={16} color={colors.primary} /></View>
-              <Text style={s.cardTitle}>Danışman Hocam</Text>
-            </View>
-            <View style={s.advisorRow}>
-              <View style={s.avatarMd}>
-                <Text style={s.avatarMdText}>
-                  {advisor.data.name.split(" ").filter(w => /^[A-ZÜÇŞĞİÖ]/.test(w)).slice(-2).map(w => w[0]).join("")}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.advisorName} numberOfLines={1}>{advisor.data.name}</Text>
-                <Text style={s.advisorDept} numberOfLines={1}>{advisor.data.department}</Text>
-                <Text style={s.advisorMeta} numberOfLines={1}>{advisor.data.office} · {advisor.data.officeHours.split(",")[0]}</Text>
-              </View>
-            </View>
-            <View style={s.advisorBtns}>
-              <Pressable
-                style={s.advisorBtnOutline}
-                onPress={() => Linking.openURL(`mailto:${advisor.data!.email}`).catch(() => {})}
-              >
-                <Mail size={14} color={colors.primary} />
-                <Text style={s.advisorBtnOutlineText}>Soru Sor</Text>
-              </Pressable>
-              {advisor.data.phone && (
-                <Pressable
-                  style={s.advisorBtnFill}
-                  onPress={() => Linking.openURL(`tel:${(advisor.data!.phone ?? '').replace(/\s/g, '')}`).catch(() => {})}
-                >
-                  <Phone size={14} color={colors.white} />
-                  <Text style={s.advisorBtnFillText}>Ara</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-        )}
+
       </View>
     </View>
   );
@@ -530,7 +496,7 @@ function GradesTab() {
 // ═══════════════════════════════════════════════════════════
 // TAB 4 — PROFİL
 // ═══════════════════════════════════════════════════════════
-function ProfileTab() {
+function ProfileTab({ onOpenMessage }: { onOpenMessage: () => void }) {
   const { user, logout } = useAuth();
   const advisor = useAdvisor();
   const insets = useSafeAreaInsets();
@@ -563,51 +529,23 @@ function ProfileTab() {
           </View>
         </View>
 
-        {/* Danışman Detay */}
-        {advisor.data && (
-          <View style={s.card}>
-            <View style={s.cardHeader}>
-              <View style={s.softIcon}><User size={16} color={colors.primary} /></View>
-              <Text style={s.cardTitle}>Danışman Hocam</Text>
-            </View>
-
-            <View style={s.advisorRow}>
-              <View style={s.avatarMd}>
-                <Text style={s.avatarMdText}>
-                  {advisor.data.name.split(" ").filter(w => /^[A-ZÜÇŞĞİÖ]/.test(w)).slice(-2).map(w => w[0]).join("")}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.advisorName}>{advisor.data.name}</Text>
-                <Text style={s.advisorDept}>{advisor.data.department}</Text>
-              </View>
-            </View>
-
-            <View style={s.profileInfoList}>
-              <InfoRow label="Oda" value={advisor.data.office} />
-              <InfoRow label="Danışmanlık Saatleri" value={advisor.data.officeHours} />
-              <InfoRow label="E-posta" value={advisor.data.email} />
-              {advisor.data.phone && <InfoRow label="Telefon" value={advisor.data.phone} />}
-            </View>
-
-            <View style={[s.advisorBtns, { marginTop: 12 }]}>
-              <Pressable
-                style={[s.advisorBtnOutline, { flex: 1 }]}
-                onPress={() => Linking.openURL(`mailto:${advisor.data!.email}`).catch(() => {})}
-              >
-                <Mail size={14} color={colors.primary} />
-                <Text style={s.advisorBtnOutlineText}>E-posta Gönder</Text>
-              </Pressable>
-              <Pressable
-                style={[s.advisorBtnFill, { flex: 1 }]}
-                onPress={() => Linking.openURL(`tel:${(advisor.data!.phone ?? '').replace(/\s/g, '')}`).catch(() => {})}
-              >
-                <MessageCircle size={14} color={colors.white} />
-                <Text style={s.advisorBtnFillText}>Mesaj Gönder</Text>
-              </Pressable>
-            </View>
+        {/* İletişim Merkezi */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <View style={s.softIcon}><MessageCircle size={16} color={colors.primary} /></View>
+            <Text style={s.cardTitle}>İletişim Merkezi</Text>
           </View>
-        )}
+          <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 16, lineHeight: 20 }}>
+            Öğrenci işleri, danışman veya staj sorumlusuna doğrudan uygulama içinden mesaj gönderebilirsiniz.
+          </Text>
+          <Pressable
+            style={s.advisorBtnFill}
+            onPress={onOpenMessage}
+          >
+            <MessageCircle size={14} color={colors.white} />
+            <Text style={s.advisorBtnFillText}>Mesaj Gönder</Text>
+          </Pressable>
+        </View>
 
         {/* Çıkış */}
         <Pressable

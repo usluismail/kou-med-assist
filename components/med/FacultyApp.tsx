@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   LayoutChangeEvent,
   PanResponder,
@@ -10,21 +11,32 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
+  Bell,
   CheckCircle2,
   ClipboardCheck,
+  Clock,
   Cloud,
   CloudOff,
+  DoorOpen,
   LogOut,
+  Megaphone,
   Mic,
   ScanLine,
+  Send,
   Stethoscope,
+  Users,
+  X,
+  XCircle,
 } from "lucide-react-native";
 import { SwipeToApprove } from "./SwipeToApprove";
 import { EmptyBlock, ErrorBlock, LoadingBlock } from "./StateViews";
 import { useAuth } from "@/lib/api/AuthContext";
 import { approveLog, requestRevision, submitOsceScore, validateQrPayload } from "@/lib/api";
+import { apiRequest } from "@/lib/api/client";
+import { endpoints } from "@/lib/api/endpoints";
 import { useOsceStation, usePendingApprovals } from "@/lib/api/hooks";
 import { relativeTimeTr } from "@/lib/api/labels";
 import type { PendingApproval } from "@/lib/api/types";
@@ -32,10 +44,11 @@ import { hapticSuccess } from "@/lib/haptics";
 import { useToast } from "@/components/Toast";
 import { colors } from "@/lib/theme";
 
-type Tab = "pending" | "scanner" | "osce";
+type Tab = "pending" | "scanner" | "announce";
 
 export function FacultyApp() {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const pending = usePendingApprovals();
   const [tab, setTab] = useState<Tab>("pending");
@@ -102,30 +115,11 @@ export function FacultyApp() {
             </Pressable>
           </View>
         ) : null}
-        <View style={styles.tabSwitch}>
-          {(
-            [
-              ["pending", `Karneler (${pendingCount})`],
-              ["scanner", "QR Tarayıcı"],
-              ["osce", "OSCE Rubrik"],
-            ] as Array<[Tab, string]>
-          ).map(([k, l]) => (
-            <Pressable
-              key={k}
-              onPress={() => setTab(k)}
-              style={[styles.tabBtn, tab === k && styles.tabBtnActive]}
-            >
-              <Text style={[styles.tabBtnText, tab === k && styles.tabBtnTextActive]}>
-                {l}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 88 + Math.max(insets.bottom, 8) }]}
         showsVerticalScrollIndicator={false}
       >
         {tab === "pending" && (
@@ -138,8 +132,37 @@ export function FacultyApp() {
           />
         )}
         {tab === "scanner" && <Scanner onApproved={pending.reload} />}
-        {tab === "osce" && <OsceRubric />}
+        {tab === "announce" && <AnnouncementConsole />}
       </ScrollView>
+
+      {/* Tab Bar */}
+      <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        {(
+          [
+            ["pending", `Karneler (${pendingCount})`, ClipboardCheck],
+            ["scanner", "QR", ScanLine],
+            ["announce", "Duyuru", Megaphone],
+          ] as Array<[Tab, string, any]>
+        ).map(([key, label, Icon]) => {
+          const active = tab === key;
+          return (
+            <Pressable
+              key={key}
+              onPress={() => setTab(key)}
+              style={[styles.tabItem, active && styles.tabItemActive]}
+            >
+              <Icon
+                size={20}
+                color={active ? colors.kouForeground : colors.mutedForeground}
+                strokeWidth={active ? 2.5 : 2}
+              />
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -792,30 +815,21 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   flex1: { flex: 1, minWidth: 0 },
-  headerName: { fontSize: 14, fontWeight: "600", color: colors.white },
-  headerSub: { fontSize: 11, color: colors.white60, marginTop: 2 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerName: { fontSize: 18, fontWeight: "800", color: colors.white },
+  headerSub: { fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerPill: {
-    borderRadius: 999,
-    backgroundColor: colors.kou20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  headerPillText: { fontSize: 10, fontWeight: "700", color: colors.white },
-  headerLogout: {
-    width: 36,
     height: 36,
     borderRadius: 12,
     backgroundColor: colors.white10,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 12,
   },
+  headerPillText: { fontSize: 10, fontWeight: "700", color: colors.white },
+  headerLogout: { padding: 6 },
   facultyProfileCard: {
     marginTop: 12,
     borderRadius: 16,
@@ -1297,4 +1311,275 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   completeBtnText: { fontSize: 14, fontWeight: "600", color: colors.kouForeground },
+
+  // ── Duyuru Konsolu ──
+  annConsole: { padding: 16, gap: 14 },
+  annSection: {
+    backgroundColor: colors.card, borderRadius: 18, padding: 16,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
+  },
+  annSectionTitle: { fontSize: 13, fontWeight: "700", color: colors.mutedForeground, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 },
+  // hedef kitle chips
+  audienceRow:  { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  audienceChip: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: colors.muted, borderWidth: 1.5, borderColor: "transparent",
+  },
+  audienceChipActive: { backgroundColor: colors.kou10, borderColor: colors.primary },
+  audienceChipText: { fontSize: 12, fontWeight: "600", color: colors.mutedForeground },
+  audienceChipTextActive: { color: colors.primary },
+  // aksiyon tipi kartları
+  actionTypeRow: { flexDirection: "row", gap: 8 },
+  actionTypeCard: {
+    flex: 1, borderRadius: 14, padding: 12, alignItems: "center", gap: 6,
+    backgroundColor: colors.muted, borderWidth: 1.5, borderColor: "transparent",
+  },
+  actionTypeCardActive: { borderColor: colors.primary, backgroundColor: colors.kou10 },
+  actionTypeLabel: { fontSize: 11, fontWeight: "600", color: colors.mutedForeground, textAlign: "center" },
+  actionTypeLabelActive: { color: colors.primary },
+  // form
+  annInput: {
+    borderRadius: 14, borderWidth: 1.5, borderColor: colors.border,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: colors.foreground, backgroundColor: colors.card,
+    marginBottom: 8,
+  },
+  annTextarea: { height: 100, textAlignVertical: "top" },
+  annSendBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 14,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4,
+  },
+  annSendBtnDisabled: { backgroundColor: colors.muted, shadowOpacity: 0 },
+  annSendBtnText: { fontSize: 15, fontWeight: "700", color: colors.white },
+  // sent banner
+  sentBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#00854218", borderRadius: 14, padding: 14,
+  },
+  sentBannerText: { fontSize: 13, fontWeight: "600", color: colors.primary, flex: 1 },
+  sentBannerSub: { fontSize: 11, color: colors.mutedForeground },
+  sentReset: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.kou10 },
+  sentResetText: { fontSize: 12, fontWeight: "700", color: colors.primary },
+  // geçmiş
+  historyItem: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 8 },
+  historyBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+  historyDot:  { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
+  historyTitle: { fontSize: 13, fontWeight: "700", color: colors.foreground },
+  historyMeta: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
+  historyEmpty: { fontSize: 13, color: colors.mutedForeground, textAlign: "center", paddingVertical: 12 },
+
+  // ── Tab Bar ──
+  tabBar: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    flexDirection: "row", backgroundColor: colors.card,
+    borderTopWidth: 1, borderTopColor: colors.border,
+    paddingHorizontal: 6, gap: 4,
+    shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 8,
+  },
+  tabItem: {
+    flex: 1, alignItems: "center", justifyContent: "center",
+    gap: 3, paddingVertical: 8, paddingHorizontal: 4,
+    borderRadius: 12, minHeight: 52,
+  },
+  tabItemActive: { backgroundColor: colors.primary },
+  tabLabel:      { fontSize: 10, fontWeight: "600", color: colors.mutedForeground, textAlign: "center" },
+  tabLabelActive: { fontWeight: "700", color: colors.kouForeground },
 });
+
+// ═════════════════════════════════════════════════════════
+// DUYURU KONSOLU
+// ═════════════════════════════════════════════════════════
+
+const AUDIENCE_OPTIONS = [
+  { key: "all",     label: "Tüm Öğrenciler" },
+  { key: "period_1", label: "Dönem 1" },
+  { key: "period_2", label: "Dönem 2" },
+  { key: "period_3", label: "Dönem 3" },
+  { key: "period_4", label: "Dönem 4" },
+  { key: "period_5", label: "Dönem 5" },
+  { key: "period_6", label: "Dönem 6" },
+];
+
+const ACTION_TYPES: { key: string; label: string; icon: typeof Bell; color: string }[] = [
+  { key: "cancelled",    label: "İptal",        icon: XCircle,   color: "#EF4444" },
+  { key: "time_changed", label: "Saat Değişti",  icon: Clock,     color: colors.warning },
+  { key: "room_changed", label: "Yer Değişti",   icon: DoorOpen,  color: "#3B82F6" },
+  { key: "general",      label: "Genel",         icon: Megaphone, color: colors.primary },
+];
+
+function AnnouncementConsole() {
+  const { token } = useAuth();
+  const [audience, setAudience]     = useState<string[]>(["all"]);
+  const [actionType, setActionType] = useState<string>("general");
+  const [title, setTitle]           = useState("");
+  const [body, setBody]             = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [sent, setSent]             = useState<{ count: number; title: string } | null>(null);
+  const [history, setHistory]       = useState<any[]>([]);
+  const [histLoading, setHistLoading] = useState(true);
+  const toast = useToast();
+
+  // Geçmiş duyuruları çek
+  useEffect(() => {
+    if (!token) return;
+    apiRequest(endpoints.facultyAnnouncements, { token })
+      .then((d: any) => { setHistory(d ?? []); setHistLoading(false); })
+      .catch(() => setHistLoading(false));
+  }, [token, sent]);
+
+  const toggleAudience = (key: string) => {
+    if (key === "all") { setAudience(["all"]); return; }
+    setAudience((prev) => {
+      const next = prev.filter((k) => k !== "all");
+      return next.includes(key) ? next.filter((k) => k !== key) : [...next, key];
+    });
+  };
+
+  const canSend = title.trim().length > 3 && body.trim().length > 5 && audience.length > 0;
+
+  const handleSend = async () => {
+    if (!canSend || !token) return;
+    setLoading(true);
+    try {
+      const res: any = await apiRequest(endpoints.facultyAnnouncements, {
+        method: "POST", token,
+        body: { targetAudience: audience, actionType, title: title.trim(), body: body.trim() },
+      });
+      setSent({ count: res.reachedCount ?? 0, title: res.title });
+      setTitle(""); setBody("");
+      hapticSuccess();
+    } catch (e: any) {
+      toast.show(e?.message ?? "Gönderilemedi", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = () => setSent(null);
+
+  const ACTION_COLOR: Record<string, string> = {
+    cancelled: "#EF4444", time_changed: colors.warning, room_changed: "#3B82F6", general: colors.primary,
+  };
+
+  return (
+    <View style={styles.annConsole}>
+      {/* Gönderildi Ekranı */}
+      {sent ? (
+        <View style={styles.annSection}>
+          <View style={styles.sentBanner}>
+            <CheckCircle2 size={28} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sentBannerText}>Duyuru Gönderildi!</Text>
+              <Text style={styles.sentBannerSub}>"{sent.title}" — {sent.count} kişiye ulaştı</Text>
+            </View>
+          </View>
+          <Pressable onPress={handleReset} style={[styles.sentReset, { marginTop: 12, alignSelf: "center" }]}>
+            <Text style={styles.sentResetText}>+ Yeni Duyuru</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          {/* Hedef Kitle */}
+          <View style={styles.annSection}>
+            <Text style={styles.annSectionTitle}>Hedef Kitle</Text>
+            <View style={styles.audienceRow}>
+              {AUDIENCE_OPTIONS.map(({ key, label }) => {
+                const active = audience.includes(key);
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => toggleAudience(key)}
+                    style={[styles.audienceChip, active && styles.audienceChipActive]}
+                  >
+                    <Text style={[styles.audienceChipText, active && styles.audienceChipTextActive]}>
+                      {active ? "✓ " : ""}{label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Duyuru Türü */}
+          <View style={styles.annSection}>
+            <Text style={styles.annSectionTitle}>Duyuru Türü</Text>
+            <View style={styles.actionTypeRow}>
+              {ACTION_TYPES.map(({ key, label, icon: Icon, color }) => {
+                const active = actionType === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => setActionType(key)}
+                    style={[styles.actionTypeCard, active && styles.actionTypeCardActive]}
+                  >
+                    <Icon size={20} color={active ? color : colors.mutedForeground} />
+                    <Text style={[styles.actionTypeLabel, active && { ...styles.actionTypeLabelActive, color }]}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Mesaj Formu */}
+          <View style={styles.annSection}>
+            <Text style={styles.annSectionTitle}>Mesaj</Text>
+            <TextInput
+              style={styles.annInput}
+              placeholder="Duyuru başlığı (örn: Anatomi Dersi İptal)"
+              placeholderTextColor={colors.mutedForeground}
+              value={title}
+              onChangeText={setTitle}
+              maxLength={100}
+            />
+            <TextInput
+              style={[styles.annInput, styles.annTextarea]}
+              placeholder="Açıklama... (neden, alternatif bilgi, vs.)"
+              placeholderTextColor={colors.mutedForeground}
+              value={body}
+              onChangeText={setBody}
+              multiline
+              maxLength={500}
+            />
+            <Pressable
+              onPress={handleSend}
+              disabled={!canSend || loading}
+              style={[styles.annSendBtn, (!canSend || loading) && styles.annSendBtnDisabled]}
+            >
+              {loading
+                ? <ActivityIndicator color={colors.white} size="small" />
+                : <>
+                    <Send size={16} color={colors.white} />
+                    <Text style={styles.annSendBtnText}>Duyuru Gönder</Text>
+                  </>
+              }
+            </Pressable>
+          </View>
+        </>
+      )}
+
+      {/* Geçmiş Duyurular */}
+      <View style={styles.annSection}>
+        <Text style={styles.annSectionTitle}>Gönderilen Duyurular</Text>
+        {histLoading && <LoadingBlock label="Yükleniyor…" />}
+        {!histLoading && history.length === 0 && (
+          <Text style={styles.historyEmpty}>Henüz duyuru gönderilmedi</Text>
+        )}
+        {history.map((ann, i) => (
+          <View key={ann.id} style={[styles.historyItem, i > 0 && styles.historyBorder]}>
+            <View style={[styles.historyDot, { backgroundColor: ACTION_COLOR[ann.actionType] ?? colors.primary }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.historyTitle} numberOfLines={2}>{ann.title}</Text>
+              <Text style={styles.historyMeta}>
+                {ann.targetAudience?.join(", ")} · {new Date(ann.sentAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
