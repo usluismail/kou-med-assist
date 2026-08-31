@@ -425,6 +425,303 @@ function createRoutes(db) {
     res.status(201).json(score);
   });
 
+  // ════════════════════════════════════════════════════
+  // YEMEKHANESİ — Herkes erişebilir (auth isteğe bağlı)
+  // ════════════════════════════════════════════════════
+
+  /** GET /cafeteria/today — bugünün menüsü */
+  router.get("/cafeteria/today", (_req, res) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const menu =
+      db.cafeteriaMenus.find((m) => m.date === today) ||
+      db.cafeteriaMenus[0] ||
+      null;
+    res.json(menu);
+  });
+
+  /** GET /cafeteria/week — bu haftanın menüleri */
+  router.get("/cafeteria/week", (_req, res) => {
+    res.json(db.cafeteriaMenus);
+  });
+
+  // ════════════════════════════════════════════════════
+  // GENEL DUYURULAR — Portal için
+  // ════════════════════════════════════════════════════
+
+  /** GET /announcements — tüm fakülte duyuruları */
+  router.get("/announcements", (_req, res) => {
+    const sorted = [...db.announcements].sort(
+      (a, b) => new Date(b.sentAt) - new Date(a.sentAt)
+    );
+    res.json(sorted);
+  });
+
+  // ════════════════════════════════════════════════════
+  // DÖNEM 1-2-3 (PRE-KLİNİK) — Ders programı & danışman
+  // ════════════════════════════════════════════════════
+
+  /** GET /student/schedule — haftalık ders programı */
+  router.get("/student/schedule", auth, requireRole("student"), (req, res) => {
+    const schedule = db.preKlinikSchedule[req.user.id] || [];
+    // Hoca bilgilerini zenginleştir
+    const enriched = schedule.map((lesson) => {
+      const instructor = db.supervisors.find((s) => s.id === lesson.instructorId);
+      return { ...lesson, instructorName: instructor?.name || "—" };
+    });
+    res.json(enriched);
+  });
+
+  /** GET /student/advisor — danışman hoca bilgisi */
+  router.get("/student/advisor", auth, requireRole("student"), (req, res) => {
+    const advisorId = req.user.advisorId;
+    if (!advisorId) {
+      return res.status(404).json({ error: "Not Found", message: "Bu dönem için danışman tanımlı değil" });
+    }
+    const advisor = db.advisors.find((a) => a.id === advisorId);
+    if (!advisor) {
+      return res.status(404).json({ error: "Not Found", message: "Danışman bulunamadı" });
+    }
+    res.json(advisor);
+  });
+
+  // ════════════════════════════════════════════════════
+  // DÖNEM 4-5 (KLİNİK STAJ) — Staj bilgisi & takvim
+  // ════════════════════════════════════════════════════
+
+  /** GET /student/internship — aktif staj blok bilgisi */
+  router.get("/student/internship", auth, requireRole("student"), (req, res) => {
+    const block = req.user.internshipBlock;
+    if (!block) {
+      return res.status(404).json({ error: "Not Found", message: "Bu dönem için staj bloğu tanımlı değil" });
+    }
+    const supervisor = db.supervisors.find((s) => s.id === block.supervisorId);
+    res.json({ ...block, supervisorName: supervisor?.name || "—" });
+  });
+
+  /** GET /student/clinical-schedule — günlük teorik+pratik takvim */
+  router.get("/student/clinical-schedule", auth, requireRole("student"), (req, res) => {
+    const { date } = req.query; // opsiyonel: ?date=2026-09-01
+    let schedule = db.clinicalSchedule[req.user.id] || [];
+
+    if (date) {
+      schedule = schedule.filter((s) => s.date === date);
+    }
+
+    // Hoca isimlerini zenginleştir
+    const enriched = schedule.map((day) => {
+      const enrichSession = (session) => {
+        if (!session) return session;
+        const instructor = db.supervisors.find((s) => s.id === session.instructorId);
+        return { ...session, instructorName: instructor?.name || "—" };
+      };
+      return {
+        ...day,
+        morning: enrichSession(day.morning),
+        afternoon: enrichSession(day.afternoon),
+      };
+    });
+
+    res.json(enriched);
+  });
+
+  /** POST /student/clinical-schedule/:id/verify-attendance — QR ile devam doğrulama */
+  router.post(
+    "/student/clinical-schedule/:id/verify-attendance",
+    auth,
+    requireRole("student"),
+    (req, res) => {
+      const schedule = db.clinicalSchedule[req.user.id] || [];
+      const dayEntry = schedule.find((s) => s.id === req.params.id);
+      if (!dayEntry) {
+        return res.status(404).json({ error: "Not Found", message: "Takvim kaydı bulunamadı" });
+      }
+      const { session } = req.body || {}; // "morning" | "afternoon"
+      if (session === "morning" && dayEntry.morning) {
+        dayEntry.morning.attendanceVerified = true;
+      } else if (session === "afternoon" && dayEntry.afternoon) {
+        dayEntry.afternoon.attendanceVerified = true;
+      } else {
+        return res.status(422).json({ error: "Validation", message: "session 'morning' veya 'afternoon' olmalı" });
+      }
+      res.json({ ok: true, sessionId: req.params.id, verified: session });
+    }
+  );
+
+  // ════════════════════════════════════════════════════
+  // DÖNEM 6 (İNTÖRN) — E-Karne & PDF
+  // ════════════════════════════════════════════════════
+
+  /** GET /student/ekarne — e-karne durumu */
+  router.get("/student/ekarne", auth, requireRole("student"), (req, res) => {
+    const karne = db.eKarne[req.user.id];
+    if (!karne) {
+      return res.status(404).json({ error: "Not Found", message: "E-karne bulunamadı" });
+    }
+    // Staj sorumlusu isimlerini zenginleştir
+    const enriched = {
+      ...karne,
+      internships: karne.internships.map((intern) => {
+        const supervisor = db.supervisors.find((s) => s.id === intern.supervisorId);
+        return { ...intern, supervisorName: supervisor?.name || "—" };
+      }),
+    };
+    res.json(enriched);
+  });
+
+  /** POST /student/ekarne/generate-pdf — PDF oluştur */
+  router.post("/student/ekarne/generate-pdf", auth, requireRole("student"), (req, res) => {
+    const karne = db.eKarne[req.user.id];
+    if (!karne) {
+      return res.status(404).json({ error: "Not Found", message: "E-karne bulunamadı" });
+    }
+    // Mock: PDF URL oluştur
+    const pdfUrl = `https://mock-pdf.kou-tıp.edu.tr/ekarne/${req.user.id}-${Date.now()}.pdf`;
+    karne.pdfGeneratedAt = new Date().toISOString();
+    karne.pdfUrl = pdfUrl;
+
+    res.json({
+      ok: true,
+      pdfUrl,
+      generatedAt: karne.pdfGeneratedAt,
+      message: "PDF başarıyla oluşturuldu",
+    });
+  });
+
+  // ════════════════════════════════════════════════════
+  // İLETİŞİM MERKEZİ — Öğrenci mesaj gönderme
+  // ════════════════════════════════════════════════════
+
+  /** GET /messages — öğrencinin mesaj geçmişi */
+  router.get("/messages", auth, requireRole("student"), (req, res) => {
+    const userMessages = db.messages
+      .filter((m) => m.senderId === req.user.id)
+      .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+    res.json(userMessages);
+  });
+
+  /** POST /messages/send — yeni mesaj gönder */
+  router.post("/messages/send", auth, requireRole("student"), (req, res) => {
+    const { recipientType, category, body, attachments } = req.body || {};
+    if (!recipientType || !category || !body || !String(body).trim()) {
+      return res.status(422).json({
+        error: "Validation",
+        message: "recipientType, category ve body zorunlu",
+      });
+    }
+
+    const validRecipients = ["student_affairs", "advisor", "internship_supervisor"];
+    const validCategories = ["grade_objection", "excuse", "internship_change", "advising", "general"];
+
+    if (!validRecipients.includes(recipientType)) {
+      return res.status(422).json({ error: "Validation", message: "Geçersiz recipientType" });
+    }
+    if (!validCategories.includes(category)) {
+      return res.status(422).json({ error: "Validation", message: "Geçersiz category" });
+    }
+
+    // Konu otomatik oluştur
+    const recipientLabels = {
+      student_affairs: "Öğrenci İşleri",
+      advisor: "Danışman",
+      internship_supervisor: "Staj Sorumlusu",
+    };
+    const categoryLabels = {
+      grade_objection: "Not İtirazı",
+      excuse: "Mazeret / Sağlık Raporu",
+      internship_change: "Staj Değişikliği",
+      advising: "Akademik Danışmanlık",
+      general: "Genel Soru",
+    };
+
+    const subject = `[${req.user.rotation || "Öğrenci"}] ${req.user.studentNo || ""} ${req.user.name} - ${categoryLabels[category]}`;
+
+    const message = {
+      id: `msg-${Date.now()}`,
+      senderId: req.user.id,
+      senderName: req.user.name,
+      senderStudentNo: req.user.studentNo || "",
+      senderPeriod: req.user.period || null,
+      senderRotation: req.user.rotation || "",
+      recipientType,
+      recipientLabel: recipientLabels[recipientType],
+      category,
+      categoryLabel: categoryLabels[category],
+      subject,
+      body: String(body).trim(),
+      attachments: attachments || [],
+      sentAt: new Date().toISOString(),
+      status: "sent",
+    };
+
+    db.messages.unshift(message);
+    res.status(201).json(message);
+  });
+
+  // ════════════════════════════════════════════════════
+  // AKADEMİSYEN — Duyuru konsolu
+  // ════════════════════════════════════════════════════
+
+  /** GET /faculty/announcements — hocanın gönderdiği duyurular */
+  router.get("/faculty/announcements", auth, requireRole("faculty"), (req, res) => {
+    const myAnnouncements = db.announcements
+      .filter((a) => a.authorId === req.user.id)
+      .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+    res.json(myAnnouncements);
+  });
+
+  /** POST /faculty/announcements — yeni duyuru yayınla */
+  router.post("/faculty/announcements", auth, requireRole("faculty"), (req, res) => {
+    const { targetAudience, actionType, title, body, originalLesson, channels } = req.body || {};
+
+    if (!targetAudience || !actionType || !title || !body) {
+      return res.status(422).json({
+        error: "Validation",
+        message: "targetAudience, actionType, title ve body zorunlu",
+      });
+    }
+
+    const validActionTypes = ["cancelled", "time_changed", "room_changed", "general"];
+    if (!validActionTypes.includes(actionType)) {
+      return res.status(422).json({ error: "Validation", message: "Geçersiz actionType" });
+    }
+
+    const announcement = {
+      id: `ann-${Date.now()}`,
+      authorId: req.user.id,
+      authorName: req.user.name,
+      targetAudience: Array.isArray(targetAudience) ? targetAudience : [targetAudience],
+      actionType,
+      title: String(title).trim(),
+      body: String(body).trim(),
+      originalLesson: originalLesson || null,
+      sentAt: new Date().toISOString(),
+      channels: channels || ["push", "email", "in_app"],
+      isRead: false,
+    };
+
+    db.announcements.unshift(announcement);
+
+    // Simüle: kaç kişiye ulaştığını say
+    const reachedCount = Math.floor(Math.random() * 30) + 10;
+    res.status(201).json({ ...announcement, reachedCount });
+  });
+
+  /** GET /faculty/students — hocanın sorumlu öğrencileri */
+  router.get("/faculty/students", auth, requireRole("faculty"), (req, res) => {
+    // Mock: danışman olan öğrencileri dön
+    const students = db.users
+      .filter((u) => u.role === "student" && u.advisorId)
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        studentNo: u.studentNo,
+        period: u.period,
+        rotation: u.rotation,
+        initials: u.initials,
+      }));
+    res.json(students);
+  });
+
   return router;
 }
 

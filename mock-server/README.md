@@ -40,12 +40,17 @@ Telefonda Expo kullanıyorsan Mac’inin yerel IP’sini kullan:
 EXPO_PUBLIC_API_URL=http://192.168.x.x:3001
 ```
 
-## Demo hesaplar
+## Demo hesaplar — Tüm Dönemler
 
-| Rol | E-posta | Şifre |
-|-----|---------|-------|
-| Öğrenci | `ahmet.yilmaz@kocaeli.edu.tr` veya `190101044` | `ogrenci123` |
-| Akademisyen | `ayse.kaya@kocaeli.edu.tr` | `hoca123` |
+| Dönem | E-posta | Şifre | Öğrenci No |
+|-------|---------|-------|------------|
+| Dönem 1 | `zeynep.arslan@kocaeli.edu.tr` | `ogrenci123` | `240101010` |
+| Dönem 2 | `can.yilmaz@kocaeli.edu.tr` | `ogrenci123` | `230101022` |
+| Dönem 3 | `selin.kurt@kocaeli.edu.tr` | `ogrenci123` | `220101031` |
+| Dönem 4 | `mert.aslan@kocaeli.edu.tr` | `ogrenci123` | `210101044` |
+| Dönem 5 | `elif.demir@kocaeli.edu.tr` | `ogrenci123` | `200101055` |
+| Dönem 6 (İntörn) | `ahmet.yilmaz@kocaeli.edu.tr` | `ogrenci123` | `190101044` |
+| Akademisyen | `ayse.kaya@kocaeli.edu.tr` | `hoca123` | — |
 
 ## Sprint A endpoint’leri
 

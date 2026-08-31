@@ -188,3 +188,200 @@ export type ApiErrorBody = {
   message?: string;
   status?: string;
 };
+
+// ─────────────────────────────────────────────────────────
+// DÖNEM BİLGİSİ
+// ─────────────────────────────────────────────────────────
+export type StudentPeriod = 1 | 2 | 3 | 4 | 5 | 6;
+
+// ─────────────────────────────────────────────────────────
+// DANIŞMAN HOCA (Dönem 1-3)
+// ─────────────────────────────────────────────────────────
+export type Advisor = {
+  id: string;
+  name: string;
+  title: string;
+  department: string;
+  office: string;
+  officeHours: string;
+  email: string;
+  phone?: string;
+  photoUrl: string | null;
+};
+
+// ─────────────────────────────────────────────────────────
+// DERS PROGRAMI (Dönem 1-3: Pre-Klinik)
+// ─────────────────────────────────────────────────────────
+export type LessonDay = "Mon" | "Tue" | "Wed" | "Thu" | "Fri";
+export type LessonType = "lecture" | "lab" | "exam";
+
+export type Lesson = {
+  day: LessonDay;
+  time: string;
+  endTime: string;
+  subject: string;
+  room: string;
+  instructorId: string;
+  instructorName: string;
+  type: LessonType;
+};
+
+// ─────────────────────────────────────────────────────────
+// YEMEKHANESİ
+// ─────────────────────────────────────────────────────────
+export type MenuItem = {
+  name: string;
+  calories: number;
+  allergens?: string[];
+};
+
+export type CafeteriaMenu = {
+  date: string;
+  meals: {
+    breakfast: MenuItem[];
+    lunch: MenuItem[];
+    dinner: MenuItem[];
+  };
+};
+
+// ─────────────────────────────────────────────────────────
+// STAJ BLOĞU (Dönem 4-5)
+// ─────────────────────────────────────────────────────────
+export type InternshipBlock = {
+  name: string;
+  week: number;
+  rotation: string;
+  supervisorId: string;
+  supervisorName: string;
+  startDate: string;
+  endDate: string;
+};
+
+// ─────────────────────────────────────────────────────────
+// KLİNİK STAJ TAKVİMİ (Dönem 4-5)
+// ─────────────────────────────────────────────────────────
+export type ClinicalSessionType = "theoretical" | "practical";
+
+export type ClinicalSession = {
+  type: ClinicalSessionType;
+  time: string;
+  endTime: string;
+  subject: string;
+  location: string;
+  instructorId: string;
+  instructorName: string;
+  attendanceRequired: boolean;
+  attendanceVerified: boolean;
+};
+
+export type ClinicalScheduleDay = {
+  id: string;
+  date: string;
+  morning: ClinicalSession;
+  afternoon: ClinicalSession;
+};
+
+// ─────────────────────────────────────────────────────────
+// E-KARNE (Dönem 6: İntörn)
+// ─────────────────────────────────────────────────────────
+export type InternshipStatus = "completed" | "pending" | "not_started";
+export type SignatureStatus = "signed" | "pending";
+
+export type InternshipRecord = {
+  name: string;
+  status: InternshipStatus;
+  completedAt: string | null;
+  supervisorId: string;
+  supervisorName: string;
+  signatureStatus: SignatureStatus;
+};
+
+export type EKarne = {
+  studentId: string;
+  completionRate: number;
+  internships: InternshipRecord[];
+  procedureStats: {
+    total: number;
+    completed: number;
+    pending: number;
+  };
+  pdfGeneratedAt: string | null;
+  pdfUrl: string | null;
+  generatedAt: string;
+};
+
+export type PdfGenerateResponse = {
+  ok: boolean;
+  pdfUrl: string;
+  generatedAt: string;
+  message: string;
+};
+
+// ─────────────────────────────────────────────────────────
+// İLETİŞİM MERKEZİ
+// ─────────────────────────────────────────────────────────
+export type MessageRecipientType = "student_affairs" | "advisor" | "internship_supervisor";
+export type MessageCategory = "grade_objection" | "excuse" | "internship_change" | "advising" | "general";
+export type MessageStatus = "sent" | "delivered" | "replied";
+
+export type Message = {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderStudentNo: string;
+  senderPeriod: number | null;
+  senderRotation: string;
+  recipientType: MessageRecipientType;
+  recipientLabel: string;
+  category: MessageCategory;
+  categoryLabel: string;
+  subject: string;
+  body: string;
+  attachments: string[];
+  sentAt: string;
+  status: MessageStatus;
+};
+
+export type SendMessageInput = {
+  recipientType: MessageRecipientType;
+  category: MessageCategory;
+  body: string;
+  attachments?: string[];
+};
+
+// ─────────────────────────────────────────────────────────
+// DUYURULAR
+// ─────────────────────────────────────────────────────────
+export type AnnouncementActionType = "cancelled" | "time_changed" | "room_changed" | "general";
+export type AnnouncementChannel = "push" | "email" | "in_app";
+
+export type AnnouncementTarget = {
+  type: "period_committee" | "internship_group" | "all_interns" | "specific_group";
+  period?: number;
+  group?: string;
+};
+
+export type Announcement = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  targetAudience: AnnouncementTarget[];
+  actionType: AnnouncementActionType;
+  title: string;
+  body: string;
+  originalLesson: string | null;
+  sentAt: string;
+  channels: AnnouncementChannel[];
+  isRead: boolean;
+  reachedCount?: number;
+};
+
+export type CreateAnnouncementInput = {
+  targetAudience: AnnouncementTarget | AnnouncementTarget[];
+  actionType: AnnouncementActionType;
+  title: string;
+  body: string;
+  originalLesson?: string;
+  channels?: AnnouncementChannel[];
+};
+

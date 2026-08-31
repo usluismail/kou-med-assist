@@ -4,10 +4,12 @@
   "main": "expo-router/entry",
   "private": true,
   "scripts": {
-    "start": "expo start --lan",
-    "ios": "expo start --lan --ios",
+    "start": "expo start",
+    "ios": "expo start --localhost --ios",
     "android": "expo start --android",
     "web": "expo start --web",
+    "start:lan": "expo start --lan",
+    "ios:lan": "expo start --lan --ios",
     "mock": "npm --prefix mock-server start",
     "mock:dev": "npm --prefix mock-server run dev"
   },

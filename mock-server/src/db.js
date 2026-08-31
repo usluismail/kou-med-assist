@@ -3,17 +3,37 @@ const seed = require("./seed");
 /** Bellekte tutulan veri — yeniden başlatınca seed’e döner */
 function createDb() {
   return {
+    // ── Kullanıcılar & rol verileri ──
     users: structuredClone(seed.users),
     supervisors: structuredClone(seed.supervisors),
+    advisors: structuredClone(seed.advisors || []),
+    colleagues: structuredClone(seed.colleagues),
+
+    // ── Pre-klinik (Dönem 1-3) ──
+    preKlinikSchedule: structuredClone(seed.preKlinikSchedule || {}),
+    cafeteriaMenus: structuredClone(seed.cafeteriaMenus || []),
+
+    // ── Klinik staj (Dönem 4-5) ──
+    clinicalSchedule: structuredClone(seed.clinicalSchedule || {}),
+
+    // ── İntörn (Dönem 6) ──
+    eKarne: structuredClone(seed.eKarne || {}),
     procedures: structuredClone(seed.procedures),
     logs: structuredClone(seed.logs),
     shifts: structuredClone(seed.shifts),
     pendingApprovals: structuredClone(seed.pendingApprovals),
-    colleagues: structuredClone(seed.colleagues),
+
+    // ── İletişim ──
+    messages: structuredClone(seed.messages || []),
+    announcements: structuredClone(seed.announcements || []),
+
+    // ── OSCE ──
     osceSessions: structuredClone(seed.osceSessions),
     osceStations: structuredClone(seed.osceStations),
     studentOsceProgress: structuredClone(seed.studentOsceProgress || {}),
     osceScores: [],
+
+    // ── Oturum / QR ──
     /** token → userId */
     sessions: new Map(),
     /** qrPayload → logId */
