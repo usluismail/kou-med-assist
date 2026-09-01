@@ -8,17 +8,35 @@ export type AgeGroup = "child" | "adult" | "geriatric";
 export type Sex = "f" | "m" | "other";
 export type ShiftState = "completed" | "upcoming" | "night";
 
-export type User = {
+/** Tüm kullanıcılarda ortak alanlar */
+type BaseUser = {
   id: string;
   email: string;
-  role: UserRole;
   name: string;
-  studentNo?: string;
   department: string;
-  rotation?: string;
   faculty: string;
   initials: string;
 };
+
+/** Öğrenci kullanıcısı — role discriminant ile */
+export type StudentUser = BaseUser & {
+  role: "student";
+  studentNo: string;
+  rotation: string;
+  period: 1 | 2 | 3 | 4 | 5 | 6;
+};
+
+/** Akademisyen kullanıcısı — role discriminant ile */
+export type FacultyUser = BaseUser & {
+  role: "faculty";
+};
+
+/**
+ * Discriminated union — tip-güvenli rol ayrımı.
+ * Kullanım: `if (user.role === "student") { user.studentNo }` // TS hata vermez
+ */
+export type User = StudentUser | FacultyUser;
+
 
 export type LoginResponse = {
   token: string;
@@ -75,6 +93,8 @@ export type PendingApproval = {
   studentName: string;
   procedureName: string;
   submittedAt: string;
+  studentPeriod?: number | null;
+  studentRotation?: string;
 };
 
 export type StudentDashboard = {

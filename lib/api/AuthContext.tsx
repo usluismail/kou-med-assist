@@ -108,3 +108,30 @@ export function useAuth(): AuthState {
   }
   return ctx;
 }
+
+// ─── ISP: Dar yüzey hook'ları ─────────────────────────────────────────────────
+// Bileşenler ihtiyaçları olan slice'ı kullanır; tam AuthState'e maruz kalmaz.
+
+/**
+ * useUser — yalnızca mevcut kullanıcı nesnesine ihtiyaç duyan bileşenler için.
+ * Örn: profil kartı, avatar, isim görüntüleme.
+ */
+export function useUser(): User | null {
+  return useAuth().user;
+}
+
+/**
+ * useToken — yalnızca API token'ına ihtiyaç duyan bileşenler için.
+ * Örn: manuel fetch yapan bileşenler (ShiftsScreen vb.)
+ */
+export function useToken(): string | null {
+  return useAuth().token;
+}
+
+/**
+ * useIsReady — yalnızca auth hazırlık durumunu kontrol eden bileşenler için.
+ * Örn: splash/boot screen göstergesi.
+ */
+export function useIsReady(): boolean {
+  return useAuth().ready;
+}

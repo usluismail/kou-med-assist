@@ -531,7 +531,7 @@ const eKarne = {
 };
 
 // ─────────────────────────────────────────────────────────
-// PROSEDÜRLER (U-ÇEP)
+// PROSEDÜRLER (U-ÇEP / staj logbook)
 // ─────────────────────────────────────────────────────────
 const procedures = [
   { id: "proc-1", name: "İntravenöz Kanül Takılması (Damar Yolu)", done: 8, total: 10, category: "Girişimsel" },
@@ -543,6 +543,29 @@ const procedures = [
   { id: "proc-7", name: "Temel Yaşam Desteği (CPR)", done: 6, total: 6, category: "Acil" },
   { id: "proc-8", name: "Periferik Kan Yayması Hazırlama", done: 2, total: 5, category: "Tanısal" },
 ];
+
+const d4Procedures = [
+  { id: "proc-d4-1", name: "Hasta Başı Muayene (Kardiyoloji)", done: 8, total: 10, category: "Klinik" },
+  { id: "proc-d4-2", name: "EKG Çekimi ve Değerlendirme", done: 4, total: 6, category: "Tanısal" },
+  { id: "proc-d4-3", name: "Damar Yolu Açma (IV Kanül)", done: 3, total: 5, category: "Girişimsel" },
+  { id: "proc-d4-4", name: "Venöz Kan Alma", done: 5, total: 8, category: "Girişimsel" },
+  { id: "proc-d4-5", name: "Kan Basıncı Ölçümü ve Takibi", done: 6, total: 8, category: "Klinik" },
+  { id: "proc-d4-6", name: "Akciğer Oskültasyonu", done: 4, total: 6, category: "Klinik" },
+];
+
+const d5Procedures = [
+  { id: "proc-d5-1", name: "Pediatrik Fizik Muayene", done: 5, total: 8, category: "Klinik" },
+  { id: "proc-d5-2", name: "Bebek Tartı ve Boy Ölçümü", done: 4, total: 5, category: "Klinik" },
+  { id: "proc-d5-3", name: "Aşı Uygulaması", done: 2, total: 4, category: "Girişimsel" },
+  { id: "proc-d5-4", name: "Pediatrik Damar Yolu", done: 1, total: 3, category: "Girişimsel" },
+  { id: "proc-d5-5", name: "Büyüme-Gelişme Değerlendirmesi", done: 3, total: 6, category: "Klinik" },
+];
+
+const proceduresByStudent = {
+  "user-student-1": procedures,
+  "user-student-d4": d4Procedures,
+  "user-student-d5": d5Procedures,
+};
 
 // ─────────────────────────────────────────────────────────
 // LOGBOOK KAYITLARI
@@ -588,6 +611,76 @@ const logs = [
     status: "approved",
     studentId: "user-student-1",
     ageGroup: "adult",
+    sex: "m",
+  },
+  {
+    id: "log-d4-1",
+    encounterId: "ENC-2026-441",
+    procedureId: "proc-d4-3",
+    procedureName: "Damar Yolu Açma (IV Kanül)",
+    date: "2026-08-30T14:20:00+03:00",
+    role: "performed",
+    supervisorId: "sup-7",
+    supervisorName: "Prof. Dr. Hasan Arslan",
+    status: "approved",
+    studentId: "user-student-d4",
+    ageGroup: "adult",
+    sex: "m",
+  },
+  {
+    id: "log-d4-2",
+    encounterId: "ENC-2026-448",
+    procedureId: "proc-d4-2",
+    procedureName: "EKG Çekimi ve Değerlendirme",
+    date: "2026-09-01T10:15:00+03:00",
+    role: "assisted",
+    supervisorId: "sup-7",
+    supervisorName: "Prof. Dr. Hasan Arslan",
+    status: "pending",
+    studentId: "user-student-d4",
+    ageGroup: "adult",
+    sex: "f",
+  },
+  {
+    id: "log-d4-3",
+    encounterId: "ENC-2026-452",
+    procedureId: "proc-d4-1",
+    procedureName: "Hasta Başı Muayene (Kardiyoloji)",
+    date: "2026-08-28T09:40:00+03:00",
+    role: "performed",
+    supervisorId: "sup-7",
+    supervisorName: "Prof. Dr. Hasan Arslan",
+    status: "approved",
+    studentId: "user-student-d4",
+    ageGroup: "adult",
+    sex: "m",
+  },
+  {
+    id: "log-d5-1",
+    encounterId: "ENC-2026-551",
+    procedureId: "proc-d5-1",
+    procedureName: "Pediatrik Fizik Muayene",
+    date: "2026-08-29T11:10:00+03:00",
+    role: "performed",
+    supervisorId: "sup-2",
+    supervisorName: "Doç. Dr. Ayşe Kaya",
+    status: "approved",
+    studentId: "user-student-d5",
+    ageGroup: "child",
+    sex: "f",
+  },
+  {
+    id: "log-d5-2",
+    encounterId: "ENC-2026-558",
+    procedureId: "proc-d5-4",
+    procedureName: "Pediatrik Damar Yolu",
+    date: "2026-09-01T13:45:00+03:00",
+    role: "assisted",
+    supervisorId: "sup-2",
+    supervisorName: "Doç. Dr. Ayşe Kaya",
+    status: "pending",
+    studentId: "user-student-d5",
+    ageGroup: "child",
     sex: "m",
   },
 ];
@@ -649,6 +742,8 @@ const pendingApprovals = [
     studentName: "İnt. Dr. Ahmet Yılmaz",
     procedureName: "EKG Çekimi ve Değerlendirme",
     submittedAt: "2026-08-02T19:05:00+03:00",
+    studentPeriod: 6,
+    studentRotation: "Dönem 6 · Acil Tıp",
   },
   {
     id: "log-pending-zeynep",
@@ -657,6 +752,8 @@ const pendingApprovals = [
     studentName: "İnt. Dr. Zeynep Kaya",
     procedureName: "Nazogastrik Sonda Uygulaması",
     submittedAt: "2026-08-02T23:10:00+03:00",
+    studentPeriod: 6,
+    studentRotation: "Dönem 6 · Acil Tıp",
   },
   {
     id: "log-pending-mert",
@@ -665,6 +762,28 @@ const pendingApprovals = [
     studentName: "İnt. Dr. Mert Aslan",
     procedureName: "Damar Yolu Açma",
     submittedAt: "2026-08-02T22:40:00+03:00",
+    studentPeriod: 6,
+    studentRotation: "Dönem 6 · Acil Tıp",
+  },
+  {
+    id: "log-d4-2",
+    encounterId: "ENC-2026-448",
+    studentId: "user-student-d4",
+    studentName: "Mert Aslan",
+    procedureName: "EKG Çekimi ve Değerlendirme",
+    submittedAt: "2026-09-01T10:15:00+03:00",
+    studentPeriod: 4,
+    studentRotation: "Dönem 4 · Dahiliye - Kardiyoloji",
+  },
+  {
+    id: "log-d5-2",
+    encounterId: "ENC-2026-558",
+    studentId: "user-student-d5",
+    studentName: "Elif Demir",
+    procedureName: "Pediatrik Damar Yolu",
+    submittedAt: "2026-09-01T13:45:00+03:00",
+    studentPeriod: 5,
+    studentRotation: "Dönem 5 · Pediatri - Pediatrik Kardiyoloji",
   },
 ];
 
@@ -942,6 +1061,7 @@ module.exports = {
   supervisors,
   advisors,
   procedures,
+  proceduresByStudent,
   logs,
   shifts,
   pendingApprovals,

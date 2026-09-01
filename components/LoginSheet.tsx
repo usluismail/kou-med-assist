@@ -24,8 +24,23 @@ import {
 } from "lucide-react-native";
 import { colors } from "@/lib/theme";
 import { useAuth } from "@/lib/api/AuthContext";
+import { ROLE_HOME_HREF } from "@/lib/nav";
 
 type Role = "student" | "faculty";
+
+type DemoAccount = { label: string; email: string; pass: string };
+
+/** OCP — Yeni demo hesap eklemek için yalnızca bu sabit güncellenir */
+const DEMO_ACCOUNTS: Record<Role, DemoAccount[]> = {
+  student: [
+    { label: "Dönem 1-3 Demo (Pre-Klinik)", email: "can.yilmaz@kocaeli.edu.tr", pass: "ogrenci123" },
+    { label: "Dönem 4-5 Demo (Klinik)", email: "elif.demir@kocaeli.edu.tr", pass: "ogrenci123" },
+    { label: "Dönem 6 Demo (İntörn)", email: "ahmet.yilmaz@kocaeli.edu.tr", pass: "ogrenci123" },
+  ],
+  faculty: [
+    { label: "Demo Hesabı Doldur (Hoca)", email: "ayse.kaya@kocaeli.edu.tr", pass: "hoca123" },
+  ],
+};
 
 const roles = [
   {
@@ -136,13 +151,14 @@ function LoginForm({
     setLoading(true);
     setError(null);
     try {
-      await login({
+      const logged = await login({
         email: identifier.trim(),
         password,
         role,
       });
       onClose();
-      router.replace(student ? "/ogrenci" : "/akademisyen");
+      const getHref = ROLE_HOME_HREF[logged.role];
+      if (getHref) router.replace(getHref(logged));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Giriş başarısız");
     } finally {
@@ -198,23 +214,15 @@ function LoginForm({
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      {student ? (
-        <View style={{ gap: 4, marginTop: 12 }}>
-          <Pressable onPress={() => fillDemo("can.yilmaz@kocaeli.edu.tr", "ogrenci123")} style={styles.demoBtnGroup}>
-            <Text style={styles.demoBtnText}>Dönem 1-3 Demo Doldur (Pre-Klinik)</Text>
-          </Pressable>
-          <Pressable onPress={() => fillDemo("elif.demir@kocaeli.edu.tr", "ogrenci123")} style={styles.demoBtnGroup}>
-            <Text style={styles.demoBtnText}>Dönem 4-5 Demo Doldur (Klinik)</Text>
-          </Pressable>
-          <Pressable onPress={() => fillDemo("ahmet.yilmaz@kocaeli.edu.tr", "ogrenci123")} style={styles.demoBtnGroup}>
-            <Text style={styles.demoBtnText}>Dönem 6 Demo Doldur (İntörn)</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable onPress={() => fillDemo("ayse.kaya@kocaeli.edu.tr", "hoca123")} style={styles.demoBtn}>
-          <Text style={styles.demoBtnText}>Demo hesabı doldur (Hoca)</Text>
+      {DEMO_ACCOUNTS[role].map((account) => (
+        <Pressable
+          key={account.email}
+          onPress={() => fillDemo(account.email, account.pass)}
+          style={styles.demoBtnGroup}
+        >
+          <Text style={styles.demoBtnText}>{account.label}</Text>
         </Pressable>
-      )}
+      ))}
 
       <View style={styles.rowBetween}>
         <Pressable

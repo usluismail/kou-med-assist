@@ -54,7 +54,7 @@ export function adaptLegacyOsceSession(
 export function adaptOsceStation(raw: OsceStation): OsceStation {
   return {
     ...raw,
-    globalDefault: raw.globalDefault ?? 65,
+    globalDefault: raw.globalDefault || 65,
     checklist: (raw.checklist ?? []).map((item) => ({
       ...item,
       options: item.options?.map((o) => ({

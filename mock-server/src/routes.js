@@ -27,6 +27,21 @@ function assertNoPii(body, res) {
   return true;
 }
 
+function studentProcedures(db, userId) {
+  return (db.proceduresByStudent && db.proceduresByStudent[userId]) || db.procedures;
+}
+
+function findProcedure(db, procedureId, studentId) {
+  const own = studentProcedures(db, studentId);
+  const hit = own.find((p) => p.id === procedureId);
+  if (hit) return hit;
+  for (const list of Object.values(db.proceduresByStudent || {})) {
+    const p = list.find((x) => x.id === procedureId);
+    if (p) return p;
+  }
+  return db.procedures.find((p) => p.id === procedureId) || null;
+}
+
 function createRoutes(db) {
   const router = express.Router();
   const auth = authMiddleware(db);
@@ -84,8 +99,9 @@ function createRoutes(db) {
       db.shifts.find((s) => s.studentId === req.user.id && s.state === "upcoming") ||
       db.shifts.find((s) => s.studentId === req.user.id && s.state === "night") ||
       null;
-    const done = db.procedures.reduce((sum, p) => sum + p.done, 0);
-    const total = db.procedures.reduce((sum, p) => sum + p.total, 0);
+    const procs = studentProcedures(db, req.user.id);
+    const done = procs.reduce((sum, p) => sum + p.done, 0);
+    const total = procs.reduce((sum, p) => sum + p.total, 0);
 
     res.json({
       student,
@@ -96,8 +112,8 @@ function createRoutes(db) {
     });
   });
 
-  router.get("/student/procedures", auth, requireRole("student"), (_req, res) => {
-    res.json(db.procedures);
+  router.get("/student/procedures", auth, requireRole("student"), (req, res) => {
+    res.json(studentProcedures(db, req.user.id));
   });
 
   router.get("/student/logs", auth, requireRole("student"), (req, res) => {
@@ -153,7 +169,7 @@ function createRoutes(db) {
     }
     const method = approvalMethod === "qr" ? "qr" : "push";
 
-    const procedure = db.procedures.find((p) => p.id === procedureId);
+    const procedure = findProcedure(db, procedureId, req.user.id);
     if (!procedure) {
       return res.status(404).json({ error: "Not Found", message: "Prosedür bulunamadı" });
     }
@@ -188,6 +204,8 @@ function createRoutes(db) {
       studentName: req.user.name,
       procedureName: entry.procedureName,
       submittedAt: now,
+      studentPeriod: req.user.period || null,
+      studentRotation: req.user.rotation || "",
     });
 
     let qrPayload = null;
@@ -260,7 +278,7 @@ function createRoutes(db) {
         log.voiceNoteUrl = voiceNoteUrl || null;
         log.approvedAt = new Date().toISOString();
         log.approvedBy = req.user.id;
-        const proc = db.procedures.find((p) => p.id === log.procedureId);
+        const proc = findProcedure(db, log.procedureId, log.studentId);
         if (proc && proc.done < proc.total) proc.done += 1;
       }
       if (pendingIdx >= 0) db.pendingApprovals.splice(pendingIdx, 1);
@@ -316,6 +334,8 @@ function createRoutes(db) {
         studentName: db.users.find((u) => u.id === log.studentId)?.name ?? "—",
         procedureName: log.procedureName,
         submittedAt: log.date,
+        studentPeriod: db.users.find((u) => u.id === log.studentId)?.period ?? null,
+        studentRotation: db.users.find((u) => u.id === log.studentId)?.rotation ?? "",
       }
     );
   });

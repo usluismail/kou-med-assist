@@ -1,0 +1,6 @@
+{
+  "**/*.{ts,tsx,js,mjs}": true,
+  "node_modules": false,
+  ".expo": false,
+  "mock-server/node_modules": false
+}

@@ -20,6 +20,7 @@ function createDb() {
     eKarne: structuredClone(seed.eKarne || {}),
     grades: structuredClone(seed.grades || {}),
     procedures: structuredClone(seed.procedures),
+    proceduresByStudent: structuredClone(seed.proceduresByStudent || {}),
     logs: structuredClone(seed.logs),
     shifts: structuredClone(seed.shifts),
     pendingApprovals: structuredClone(seed.pendingApprovals),
