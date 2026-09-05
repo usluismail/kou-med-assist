@@ -17,7 +17,10 @@ export function RouterTabBar({
   items: Record<string, RouterTabItem>;
 }) {
   const insets = useSafeAreaInsets();
-  const visible = state.routes.filter((r) => items[r.name]);
+  const routeMap = Object.fromEntries(state.routes.map((r) => [r.name, r]));
+  const visible = Object.keys(items)
+    .filter((key) => routeMap[key])
+    .map((key) => routeMap[key]);
   const active = state.routes[state.index]?.name ?? visible[0]?.name ?? "";
 
   return (
