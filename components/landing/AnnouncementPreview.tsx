@@ -1,16 +1,17 @@
 /**
- * AnnouncementPreview.tsx — Duyurular önizleme listesi.
- *
- * SRP: Yalnızca landing'de duyuru önizleme listesinden sorumlu.
+ * AnnouncementPreview.tsx — Duyurular önizleme (beyaz kurumsal kart).
+ * Referans: sol tarih bloğu + birim etiketi + "Tümünü gör".
  */
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { landingColors } from "@/lib/theme";
 
 type Announcement = {
   id: string;
   day: string;
   month: string;
+  unit: string;
   badge: string;
   badgeBg: string;
   badgeText: string;
@@ -22,6 +23,7 @@ const announcements: Announcement[] = [
     id: "a1",
     day: "05",
     month: "EYL",
+    unit: "Dekanlık",
     badge: "KLİNİK",
     badgeBg: landingColors.badgeClinical,
     badgeText: landingColors.badgeClinicalText,
@@ -31,6 +33,7 @@ const announcements: Announcement[] = [
     id: "a2",
     day: "03",
     month: "EYL",
+    unit: "Öğrenci İşleri",
     badge: "AKADEMİK",
     badgeBg: landingColors.badgeAcademic,
     badgeText: landingColors.badgeAcademicText,
@@ -40,6 +43,7 @@ const announcements: Announcement[] = [
     id: "a3",
     day: "01",
     month: "EYL",
+    unit: "Tıp Eğitimi AD",
     badge: "FAKÜLTE",
     badgeBg: landingColors.badgeFaculty,
     badgeText: landingColors.badgeFacultyText,
@@ -49,6 +53,7 @@ const announcements: Announcement[] = [
     id: "a4",
     day: "28",
     month: "AĞU",
+    unit: "Acil Tıp AD",
     badge: "KLİNİK",
     badgeBg: landingColors.badgeClinical,
     badgeText: landingColors.badgeClinicalText,
@@ -57,11 +62,13 @@ const announcements: Announcement[] = [
 ];
 
 export function AnnouncementPreview() {
+  const router = useRouter();
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Duyurular</Text>
-        <Pressable style={styles.seeAll}>
+        <Pressable style={styles.seeAll} onPress={() => router.push("/duyurular")}>
           <Text style={styles.seeAllText}>Tümünü gör</Text>
           <ChevronRight size={13} color={landingColors.primary} strokeWidth={2.5} />
         </Pressable>
@@ -74,25 +81,25 @@ export function AnnouncementPreview() {
             <Pressable
               style={({ pressed }) => [
                 styles.row,
-                pressed && { backgroundColor: "rgba(0,166,126,0.05)" },
+                pressed && { backgroundColor: landingColors.primaryGlow },
               ]}
+              onPress={() => router.push("/duyurular")}
             >
-              {/* Tarih badge */}
               <View style={styles.dateBadge}>
                 <Text style={styles.dateDay}>{ann.day}</Text>
                 <Text style={styles.dateMonth}>{ann.month}</Text>
               </View>
 
-              {/* İçerik */}
               <View style={styles.rowBody}>
+                <Text style={styles.unit}>{ann.unit.toUpperCase()}</Text>
+                <Text style={styles.annTitle} numberOfLines={2}>
+                  {ann.title}
+                </Text>
                 <View style={[styles.catBadge, { backgroundColor: ann.badgeBg }]}>
                   <Text style={[styles.catBadgeText, { color: ann.badgeText }]}>
                     {ann.badge}
                   </Text>
                 </View>
-                <Text style={styles.annTitle} numberOfLines={2}>
-                  {ann.title}
-                </Text>
               </View>
 
               <ChevronRight size={16} color={landingColors.textMuted} strokeWidth={2} />
@@ -115,7 +122,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: landingColors.text,
+    color: landingColors.primaryDark,
     letterSpacing: -0.3,
   },
   seeAll: { flexDirection: "row", alignItems: "center", gap: 2 },
@@ -143,37 +150,39 @@ const styles = StyleSheet.create({
   },
 
   dateBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: landingColors.glassBase,
-    borderWidth: 1,
-    borderColor: landingColors.glassBorder,
+    width: 46,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   dateDay: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "800",
     color: landingColors.text,
     fontVariant: ["tabular-nums"],
-    lineHeight: 18,
+    lineHeight: 20,
   },
   dateMonth: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "700",
     color: landingColors.textMuted,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
   },
 
-  rowBody: { flex: 1, gap: 5 },
+  rowBody: { flex: 1, gap: 4 },
+  unit: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: landingColors.textMuted,
+    letterSpacing: 0.4,
+  },
   catBadge: {
     alignSelf: "flex-start",
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
+    marginTop: 2,
   },
   catBadgeText: {
     fontSize: 9,
@@ -183,7 +192,7 @@ const styles = StyleSheet.create({
   },
   annTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     color: landingColors.text,
     lineHeight: 18,
   },

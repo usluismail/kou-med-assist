@@ -476,6 +476,32 @@ function createRoutes(db) {
     res.json(sorted);
   });
 
+  /** GET /portal/announcements — giriş öncesi duyuru arşivi */
+  router.get("/portal/announcements", (_req, res) => {
+    const sorted = [...(db.portalAnnouncements || [])].sort(
+      (a, b) => new Date(b.dateIso) - new Date(a.dateIso)
+    );
+    res.json(sorted);
+  });
+
+  /** GET /events — akademik etkinlik / seminer listesi */
+  router.get("/events", (_req, res) => {
+    const sorted = [...(db.campusEvents || [])].sort(
+      (a, b) => new Date(a.dateIso) - new Date(b.dateIso)
+    );
+    res.json(sorted);
+  });
+
+  /** GET /hospital/places — Umuttepe yerleşke rehberi */
+  router.get("/hospital/places", (_req, res) => {
+    res.json(db.hospitalPlaces || []);
+  });
+
+  /** GET /faculty/directory — akademik kadro dizini (portal) */
+  router.get("/faculty/directory", (_req, res) => {
+    res.json(db.facultyDirectory || []);
+  });
+
   // ════════════════════════════════════════════════════
   // DÖNEM 1-2-3 (PRE-KLİNİK) — Ders programı & danışman
   // ════════════════════════════════════════════════════

@@ -39,67 +39,74 @@ export const colors = {
 } as const;
 
 /**
- * Landing (unauthenticated) ekranına özel "Clinical Dark Emerald" palette.
- * Uygulamaya giriş sonrasında `colors` (light) kullanılmaya devam eder.
+ * Landing (giriş öncesi) — KOÜ Mobil referanslı açık kurumsal palet.
+ * Kırık beyaz zemin + beyaz kartlar; koyu zümrüt yalnızca hero kartında.
  */
 export const landingColors = {
-  // ── Arka plan katmanları ─────────────────────────────────────────────────
-  bg: "#0D1B2A",            // koyu lacivert — ana zemin
-  bgDeep: "#080F18",        // en koyu katman
-  bgCard: "#132032",        // kart/surface dark
-  bgCardAlt: "#1A2B3C",    // hafif daha açık kart
+  // ── Arka plan ────────────────────────────────────────────────────────────
+  bg: "#F6F7F1",
+  bgDeep: "#EEF0E8",
+  bgCard: "#FFFFFF",
+  bgCardAlt: "#F3F4EE",
 
-  // ── Primary — safir zümrüt ───────────────────────────────────────────────
-  primary: "#00A67E",
-  primaryDark: "#007A5C",
-  primaryLight: "#3EC9A1",
-  primaryGlow: "rgba(0,166,126,0.18)",
-  primaryGlow30: "rgba(0,166,126,0.30)",
+  // ── Primary — kurumsal yeşil ─────────────────────────────────────────────
+  primary: "#0C5C3D",
+  primaryDark: "#0C2E22",
+  primaryLight: "#1A7A52",
+  primaryGlow: "rgba(12,92,61,0.10)",
+  primaryGlow30: "rgba(12,92,61,0.22)",
 
-  // ── Accent — tıbbî kırmızı ───────────────────────────────────────────────
-  accent: "#E63946",
-  accentGlow: "rgba(230,57,70,0.18)",
+  // ── Accent — klinik bordo + CTA lim ──────────────────────────────────────
+  accent: "#7A1F2B",
+  accentGlow: "rgba(122,31,43,0.12)",
+  ctaLime: "#B8D44A",
+  academicGold: "#B4913A",
 
-  // ── Metin ───────────────────────────────────────────────────────────────
-  text: "#F1F5F9",
-  textSub: "rgba(241,245,249,0.65)",
-  textMuted: "rgba(241,245,249,0.40)",
+  // ── Metin (açık zemin) ───────────────────────────────────────────────────
+  text: "#14201A",
+  textSub: "rgba(20,32,26,0.62)",
+  textMuted: "rgba(20,32,26,0.40)",
 
-  // ── Glassmorphism ────────────────────────────────────────────────────────
-  glassBase: "rgba(255,255,255,0.07)",
-  glassBorder: "rgba(255,255,255,0.12)",
-  glassBorderStrong: "rgba(255,255,255,0.20)",
+  // ── Kart kenar / yüzey ───────────────────────────────────────────────────
+  glassBase: "#F3F4EE",
+  glassBorder: "rgba(12,46,34,0.08)",
+  glassBorderStrong: "rgba(12,46,34,0.14)",
 
-  // ── Tile aksanları (Keşfet grid) ─────────────────────────────────────────
-  tileAmber: "#FEF3C7",
-  tileAmberFg: "#92400E",
-  tileEmerald: "#D1FAE5",
-  tileEmeraldFg: "#065F46",
-  tileSky: "#E0F2FE",
-  tileSkyFg: "#0369A1",
-  tileViolet: "#EDE9FE",
-  tileVioletFg: "#5B21B6",
+  // ── Tile aksanları (Keşfet pastel kutuları) ───────────────────────────────
+  tileAmber: "#FDE8D0",
+  tileAmberFg: "#9A4A12",
+  tileEmerald: "#D8F0E4",
+  tileEmeraldFg: "#0C5C3D",
+  tileSky: "#DCEAF8",
+  tileSkyFg: "#1B4F7A",
+  tileViolet: "#E7E1F6",
+  tileVioletFg: "#5B3A9E",
+  tilePeach: "#F8DDD4",
+  tilePeachFg: "#8B3A2A",
+  tileMint: "#D4EFE6",
+  tileMintFg: "#0C5C3D",
 
-  // ── Swipe-to-login ───────────────────────────────────────────────────────
-  swipePill: "rgba(255,255,255,0.13)",
-  swipeKnob: "#FFFFFF",
-  swipeText: "rgba(255,255,255,0.75)",
+  // ── Swipe-to-login (hero üzerinde, koyu yüzey) ───────────────────────────
+  swipePill: "rgba(0,0,0,0.28)",
+  swipeKnob: "#B8D44A",
+  swipeText: "rgba(255,255,255,0.90)",
 
-  // ── Hero gradient ────────────────────────────────────────────────────────
-  heroOverlayTop: "rgba(13,27,42,0.18)",
-  heroOverlayBot: "rgba(8,15,24,0.92)",
+  // ── Hero overlay ─────────────────────────────────────────────────────────
+  heroOverlayTop: "rgba(12,46,34,0.35)",
+  heroOverlayBot: "rgba(8,30,22,0.88)",
+  heroEmerald: "#0C2E22",
 
-  // ── Duyuru badge tonları ─────────────────────────────────────────────────
-  badgeClinical: "rgba(230,57,70,0.18)",
-  badgeClinicalText: "#FCA5A5",
-  badgeAcademic: "rgba(59,130,246,0.18)",
-  badgeAcademicText: "#93C5FD",
-  badgeFaculty: "rgba(0,166,126,0.18)",
-  badgeFacultyText: "#6EE7C7",
+  // ── Duyuru badge tonları (açık zemin) ────────────────────────────────────
+  badgeClinical: "rgba(122,31,43,0.10)",
+  badgeClinicalText: "#7A1F2B",
+  badgeAcademic: "rgba(27,79,122,0.10)",
+  badgeAcademicText: "#1B4F7A",
+  badgeFaculty: "rgba(12,92,61,0.10)",
+  badgeFacultyText: "#0C5C3D",
 
   // ── Misc ─────────────────────────────────────────────────────────────────
-  divider: "rgba(255,255,255,0.08)",
-  ping: "#3EC9A1",
+  divider: "rgba(12,46,34,0.08)",
+  ping: "#B8D44A",
   white: "#FFFFFF",
   transparent: "transparent",
 } as const;

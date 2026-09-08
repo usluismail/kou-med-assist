@@ -42,5 +42,15 @@ export {
 } from "./faculty";
 
 // ─── Paylaşılan ────────────────────────────────────────────────────────────
-export { fetchAnnouncements, fetchMessages, sendMessage } from "./shared";
+export {
+  fetchAnnouncements,
+  fetchPortalAnnouncements,
+  fetchCampusEvents,
+  fetchCafeteriaWeek,
+  fetchCafeteriaToday,
+  fetchHospitalPlaces,
+  fetchFacultyDirectory,
+  fetchMessages,
+  sendMessage,
+} from "./shared";
 

@@ -1,15 +1,15 @@
 /**
- * HospitalBanner.tsx — Hastane blok rehberi banner bileşeni.
- *
- * SRP: Yalnızca Umuttepe Sağlık Yerleşkesi hızlı erişim bannerından sorumlu.
- * KOU Mobil'de eşdeğeri yok — differansiyasyon noktası.
+ * HospitalBanner.tsx — Umuttepe Sağlık Yerleşkesi hızlı erişim bannerı.
+ * Beyaz kart + kontrollü yeşil aksan (farklılaşma noktası).
  */
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Building2, ArrowUpRight } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { landingColors } from "@/lib/theme";
 import { useRef } from "react";
 
 export function HospitalBanner() {
+  const router = useRouter();
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>
@@ -24,14 +24,12 @@ export function HospitalBanner() {
           style={styles.bannerPressable}
           onPressIn={onPressIn}
           onPressOut={onPressOut}
-          onPress={() => {}}
+          onPress={() => router.push("/hastane")}
         >
-          {/* Sol: İkon */}
           <View style={styles.iconWrap}>
             <Building2 size={22} color={landingColors.primary} strokeWidth={2} />
           </View>
 
-          {/* Orta: Metin */}
           <View style={styles.textWrap}>
             <Text style={styles.bannerTitle}>Umuttepe Sağlık Yerleşkesi</Text>
             <Text style={styles.bannerSub}>
@@ -39,7 +37,6 @@ export function HospitalBanner() {
             </Text>
           </View>
 
-          {/* Sağ: CTA */}
           <View style={styles.ctaChip}>
             <Text style={styles.ctaText}>Rehberi Aç</Text>
             <ArrowUpRight size={12} color={landingColors.primary} strokeWidth={3} />

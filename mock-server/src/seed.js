@@ -182,7 +182,7 @@ const users = [
 // ─────────────────────────────────────────────────────────
 const cafeteriaMenus = [
   {
-    date: "2026-09-01",
+    date: "2026-09-07",
     meals: {
       breakfast: [
         { name: "Menemen", calories: 210, allergens: ["yumurta", "gluten"] },
@@ -206,7 +206,7 @@ const cafeteriaMenus = [
     },
   },
   {
-    date: "2026-09-02",
+    date: "2026-09-08",
     meals: {
       breakfast: [
         { name: "Haşlanmış Yumurta", calories: 155, allergens: ["yumurta"] },
@@ -230,7 +230,7 @@ const cafeteriaMenus = [
     },
   },
   {
-    date: "2026-09-03",
+    date: "2026-09-09",
     meals: {
       breakfast: [
         { name: "Sahanda Yumurta", calories: 190, allergens: ["yumurta"] },
@@ -250,6 +250,49 @@ const cafeteriaMenus = [
         { name: "Tavuk Sote", calories: 300 },
         { name: "Makarna", calories: 280, allergens: ["gluten"] },
         { name: "Salata", calories: 65 },
+      ],
+    },
+  },
+  {
+    date: "2026-09-10",
+    meals: {
+      breakfast: [
+        { name: "Omlet", calories: 200, allergens: ["yumurta"] },
+        { name: "Simit", calories: 250, allergens: ["gluten"] },
+        { name: "Çay", calories: 5 },
+      ],
+      lunch: [
+        { name: "Sebze Çorbası", calories: 110 },
+        { name: "Izgara Köfte", calories: 360 },
+        { name: "Pilav", calories: 230 },
+        { name: "Cacık", calories: 90 },
+        { name: "Meyve", calories: 55 },
+      ],
+      dinner: [
+        { name: "Tarhana", calories: 140 },
+        { name: "Nohut Yemeği", calories: 290 },
+        { name: "Salata", calories: 70 },
+      ],
+    },
+  },
+  {
+    date: "2026-09-11",
+    meals: {
+      breakfast: [
+        { name: "Peynir - Zeytin", calories: 160 },
+        { name: "Bal", calories: 90 },
+        { name: "Çay", calories: 5 },
+      ],
+      lunch: [
+        { name: "Mercimek Çorbası", calories: 150 },
+        { name: "Fırın Tavuk", calories: 340 },
+        { name: "Makarna", calories: 280, allergens: ["gluten"] },
+        { name: "Ayran", calories: 60 },
+      ],
+      dinner: [
+        { name: "Domates Çorbası", calories: 120 },
+        { name: "Sebzeli Güveç", calories: 260 },
+        { name: "Pilav", calories: 230 },
       ],
     },
   },
@@ -869,6 +912,337 @@ const announcements = [
 ];
 
 // ─────────────────────────────────────────────────────────
+// PORTAL DUYURULARI (giriş öncesi vitrin)
+// ─────────────────────────────────────────────────────────
+const portalAnnouncements = [
+  {
+    id: "pa-1",
+    day: "05",
+    month: "EYL",
+    dateIso: "2026-09-05",
+    unit: "Dekanlık",
+    category: "klinik",
+    title: "Dönem 6 İntörn Nöbet Listeleri Yayınlandı",
+    summary: "Eylül-Ekim dönemi nöbet çizelgesi ve takas kuralları.",
+    body: "2026-2027 eğitim-öğretim yılı Dönem 6 intörn nöbet listeleri yayınlanmıştır. Listeleri PDF ekinden inceleyebilir, itirazlarınızı Öğrenci İşleri'ne iletebilirsiniz.",
+    pdfUrl:
+      "https://api.kocaeli.edu.tr/api/FileOperation/OpenFile?filePath=1084%2FDocument%2FFiles%2F2025%2F12%2F20251202_9f076_tip-fakultesi-2025-2026-akademik-takvimi-333.pdf",
+  },
+  {
+    id: "pa-2",
+    day: "03",
+    month: "EYL",
+    dateIso: "2026-09-03",
+    unit: "Öğrenci İşleri",
+    category: "akademik",
+    title: "2026-2027 Eğitim-Öğretim Yılı Açılış Programı",
+    summary: "Beyaz önlük töreni ve açılış konferansı takvimi.",
+    body: "Fakülte açılış programı ve Beyaz Önlük Giyme Töreni detayları ekli belgede yer almaktadır.",
+    pdfUrl:
+      "https://api.kocaeli.edu.tr/api/FileOperation/OpenFile?filePath=1019%2FDocument%2FFiles%2F2025%2F09%2F20250915_d33c0_donem-i-ders-programi-2025-2026son-645.pdf",
+  },
+  {
+    id: "pa-3",
+    day: "01",
+    month: "EYL",
+    dateIso: "2026-09-01",
+    unit: "Tıp Eğitimi AD",
+    category: "fakulte",
+    title: "OSCE Sınavı Başvuru Takvimi Güncellendi",
+    summary: "Klinik beceri sınavı istasyon listesi ve başvuru tarihleri.",
+    body: "OSCE başvuru ve istasyon takvimi güncellenmiştir. Öğrencilerin duyuruyu dikkatle incelemeleri gerekmektedir.",
+    pdfUrl: null,
+  },
+  {
+    id: "pa-4",
+    day: "28",
+    month: "AĞU",
+    dateIso: "2026-08-28",
+    unit: "Acil Tıp AD",
+    category: "staj",
+    title: "Acil Tıp Rotasyon Programı Değişikliği Hk.",
+    summary: "Staj grubu A-B pratik saatlerinde güncelleme.",
+    body: "Acil Tıp rotasyonunda pratik saatleri ve grup dağılımı revize edilmiştir. Güncel program ekte paylaşılmıştır.",
+    pdfUrl: null,
+  },
+  {
+    id: "pa-5",
+    day: "22",
+    month: "AĞU",
+    dateIso: "2026-08-22",
+    unit: "Dekanlık",
+    category: "akademik",
+    title: "Akademik Takvim 2025-2026 (Güncel PDF)",
+    summary: "Ara tatil, final ve bütünleme tarihleri.",
+    body: "Fakülte akademik takviminin güncel hali ekteki PDF dosyasında yer almaktadır.",
+    pdfUrl:
+      "https://api.kocaeli.edu.tr/api/FileOperation/OpenFile?filePath=1084%2FDocument%2FFiles%2F2025%2F12%2F20251202_9f076_tip-fakultesi-2025-2026-akademik-takvimi-333.pdf",
+  },
+];
+
+// ─────────────────────────────────────────────────────────
+// KAMPÜS ETKİNLİKLERİ / SEMİNERLER
+// ─────────────────────────────────────────────────────────
+const campusEvents = [
+  {
+    id: "ev-1",
+    day: "16",
+    month: "EYL",
+    dateIso: "2026-09-16",
+    time: "14:00",
+    organizer: "KOCAELİ ÜNİVERSİTESİ TIP FAKÜLTESİ",
+    title: "Tıp Fakültesi Söyleşileri: Moleküler Biyoloji",
+    description: "Klinik genetiğin güncel uygulamaları üzerine akademik söyleşi.",
+    location: "Konferans Salonu · Morfoloji",
+    speakerName: "Prof. Dr. Aslı Tolun",
+    speakerTitle: "Boğaziçi Üniversitesi",
+    accent: "sky",
+  },
+  {
+    id: "ev-2",
+    day: "22",
+    month: "EYL",
+    dateIso: "2026-09-22",
+    time: "13:30",
+    organizer: "DAHİLİYE ANABİLİM DALI",
+    title: "Klinik Vaka Sunumu: Kardiyoloji",
+    description: "Haftalık vaka tartışması — intörn ve stajyerlere açık.",
+    location: "Amfi 3 · Umuttepe",
+    speakerName: "Prof. Dr. Hasan Arslan",
+    speakerTitle: "Kardiyoloji",
+    accent: "emerald",
+  },
+  {
+    id: "ev-3",
+    day: "02",
+    month: "EKİ",
+    dateIso: "2026-10-02",
+    time: "10:00",
+    organizer: "TIP EĞİTİMİ ANABİLİM DALI",
+    title: "Akademik Kurul Toplantısı",
+    description: "Dönem koordinatörleri ve kurul başkanları aylık toplantısı.",
+    location: "Dekanlık Toplantı Salonu",
+    speakerName: null,
+    speakerTitle: null,
+    accent: "violet",
+  },
+  {
+    id: "ev-4",
+    day: "08",
+    month: "EKİ",
+    dateIso: "2026-10-08",
+    time: "15:00",
+    organizer: "ARAŞTIRMA HASTANESİ",
+    title: "Multidisipliner Tümör Kurulu",
+    description: "Haftalık klinik karar kurulu — gözlemci intörnler için kontenjan sınırlı.",
+    location: "Onkoloji Konferans Salonu",
+    speakerName: "Doç. Dr. Neslihan Kurt",
+    speakerTitle: "Tıbbi Onkoloji",
+    accent: "amber",
+  },
+];
+
+// ─────────────────────────────────────────────────────────
+// HASTANE REHBERİ — Umuttepe blok / kat / birim
+// ─────────────────────────────────────────────────────────
+const hospitalPlaces = [
+  {
+    id: "hp-1",
+    name: "Acil Triyaj",
+    block: "Acil Blok",
+    floor: "Zemin",
+    category: "acil",
+    hint: "Ana acil girişi · 7/24",
+    tags: ["acil", "triyaj", "ambulans"],
+  },
+  {
+    id: "hp-2",
+    name: "Kardiyoloji Polikliniği",
+    block: "B Blok",
+    floor: "2. Kat",
+    category: "poliklinik",
+    hint: "Asansör B2 · Poliklinik koridoru",
+    tags: ["kardiyoloji", "poliklinik"],
+  },
+  {
+    id: "hp-3",
+    name: "Pediatri Polikliniği",
+    block: "C Blok",
+    floor: "1. Kat",
+    category: "poliklinik",
+    hint: "Çocuk poliklinikleri girişi",
+    tags: ["pediatri", "çocuk"],
+  },
+  {
+    id: "hp-4",
+    name: "Amfi 1",
+    block: "Morfoloji",
+    floor: "Zemin",
+    category: "amfi",
+    hint: "Ana amfi · 280 kişilik",
+    tags: ["ders", "amfi", "morfoloji"],
+  },
+  {
+    id: "hp-5",
+    name: "Amfi 3",
+    block: "Morfoloji",
+    floor: "1. Kat",
+    category: "amfi",
+    hint: "Klinik vaka sunumları",
+    tags: ["amfi", "vaka"],
+  },
+  {
+    id: "hp-6",
+    name: "Anatomi Laboratuvarı",
+    block: "Morfoloji",
+    floor: "Bodrum",
+    category: "lab",
+    hint: "Kadavra salonu · önlük zorunlu",
+    tags: ["anatomi", "lab"],
+  },
+  {
+    id: "hp-7",
+    name: "Histoloji Laboratuvarı",
+    block: "Morfoloji",
+    floor: "1. Kat",
+    category: "lab",
+    hint: "Mikroskop salonu",
+    tags: ["histoloji", "lab"],
+  },
+  {
+    id: "hp-8",
+    name: "Dekanlık",
+    block: "İdari Blok",
+    floor: "2. Kat",
+    category: "idari",
+    hint: "Öğrenci işleri aynı koridorda",
+    tags: ["dekanlık", "idari"],
+  },
+  {
+    id: "hp-9",
+    name: "Öğrenci İşleri",
+    block: "İdari Blok",
+    floor: "1. Kat",
+    category: "idari",
+    hint: "Belge · mazeret · kayıt",
+    tags: ["öğrenci işleri", "belge"],
+  },
+  {
+    id: "hp-10",
+    name: "Genel Cerrahi Servisi",
+    block: "A Blok",
+    floor: "4. Kat",
+    category: "servis",
+    hint: "Yatan hasta · intörn nöbet",
+    tags: ["cerrahi", "servis"],
+  },
+  {
+    id: "hp-11",
+    name: "Dahiliye Servisi",
+    block: "A Blok",
+    floor: "3. Kat",
+    category: "servis",
+    hint: "Yatan hasta koridoru",
+    tags: ["dahiliye", "servis"],
+  },
+  {
+    id: "hp-12",
+    name: "Konferans Salonu",
+    block: "Morfoloji",
+    floor: "2. Kat",
+    category: "amfi",
+    hint: "Söyleşi ve akademik toplantılar",
+    tags: ["konferans", "söyleşi"],
+  },
+];
+
+// ─────────────────────────────────────────────────────────
+// AKADEMİK KADRO DİZİNİ (giriş öncesi)
+// ─────────────────────────────────────────────────────────
+const facultyDirectory = [
+  {
+    id: "fd-1",
+    name: "Prof. Dr. Alparslan Kuş",
+    title: "Prof. Dr.",
+    department: "Dekanlık",
+    office: "İdari Blok · 2. Kat",
+    email: "dekan@kocaeli.edu.tr",
+    phone: "+90 262 303 75 75",
+    role: "dean",
+  },
+  {
+    id: "fd-2",
+    name: "Prof. Dr. Fatma Şahin",
+    title: "Prof. Dr.",
+    department: "Anatomi Anabilim Dalı",
+    office: "B Blok · 214",
+    email: "fatma.sahin@kocaeli.edu.tr",
+    phone: "+90 262 303 72 00",
+    role: "chair",
+  },
+  {
+    id: "fd-3",
+    name: "Doç. Dr. Kemal Demir",
+    title: "Doç. Dr.",
+    department: "Fizyoloji Anabilim Dalı",
+    office: "A Blok · 118",
+    email: "kemal.demir@kocaeli.edu.tr",
+    phone: "+90 262 303 72 10",
+    role: "chair",
+  },
+  {
+    id: "fd-4",
+    name: "Doç. Dr. Ayşe Kaya",
+    title: "Doç. Dr.",
+    department: "Pediatri Anabilim Dalı",
+    office: "C Blok · 210",
+    email: "ayse.kaya@kocaeli.edu.tr",
+    phone: "+90 262 303 73 20",
+    role: "faculty",
+  },
+  {
+    id: "fd-5",
+    name: "Prof. Dr. Hasan Arslan",
+    title: "Prof. Dr.",
+    department: "Dahiliye / Kardiyoloji",
+    office: "B Blok · 305",
+    email: "hasan.arslan@kocaeli.edu.tr",
+    phone: "+90 262 303 74 10",
+    role: "chair",
+  },
+  {
+    id: "fd-6",
+    name: "Dr. Öğr. Üyesi Ali Can",
+    title: "Dr. Öğr. Üyesi",
+    department: "Genel Cerrahi Anabilim Dalı",
+    office: "A Blok · 412",
+    email: "ali.can@kocaeli.edu.tr",
+    phone: null,
+    role: "faculty",
+  },
+  {
+    id: "fd-7",
+    name: "Doç. Dr. Neslihan Kurt",
+    title: "Doç. Dr.",
+    department: "Kadın Hastalıkları ve Doğum",
+    office: "C Blok · 118",
+    email: "neslihan.kurt@kocaeli.edu.tr",
+    phone: "+90 262 303 73 50",
+    role: "faculty",
+  },
+  {
+    id: "fd-8",
+    name: "Dr. Öğr. Üyesi Selin Çelik",
+    title: "Dr. Öğr. Üyesi",
+    department: "Tıbbi Biyokimya",
+    office: "Morfoloji · 106",
+    email: "selin.celik@kocaeli.edu.tr",
+    phone: null,
+    role: "advisor",
+  },
+];
+
+// ─────────────────────────────────────────────────────────
 // ARKADAŞLAR (nöbet takas için)
 // ─────────────────────────────────────────────────────────
 const colleagues = [
@@ -1075,5 +1449,9 @@ module.exports = {
   eKarne,
   messages,
   announcements,
+  portalAnnouncements,
+  campusEvents,
+  hospitalPlaces,
+  facultyDirectory,
   grades,
 };

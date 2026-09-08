@@ -22,7 +22,7 @@ import {
   UserRound,
   X,
 } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, landingColors } from "@/lib/theme";
 import { useAuth } from "@/lib/api/AuthContext";
 import { ROLE_HOME_HREF } from "@/lib/nav";
 
@@ -386,9 +386,9 @@ const styles = StyleSheet.create({
   remember: { fontSize: 12, fontWeight: "500", color: colors.secondaryForeground },
   submit: {
     marginTop: 16,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: landingColors.primary,
+    borderRadius: 14,
+    paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

@@ -28,6 +28,10 @@ function createDb() {
     // ── İletişim ──
     messages: structuredClone(seed.messages || []),
     announcements: structuredClone(seed.announcements || []),
+    portalAnnouncements: structuredClone(seed.portalAnnouncements || []),
+    campusEvents: structuredClone(seed.campusEvents || []),
+    hospitalPlaces: structuredClone(seed.hospitalPlaces || []),
+    facultyDirectory: structuredClone(seed.facultyDirectory || []),
 
     // ── OSCE ──
     osceSessions: structuredClone(seed.osceSessions),

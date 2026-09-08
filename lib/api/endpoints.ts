@@ -39,6 +39,10 @@ export const endpoints = {
   cafeteriaToday: "/cafeteria/today",
   cafeteriaWeek: "/cafeteria/week",
   announcements: "/announcements",
+  portalAnnouncements: "/portal/announcements",
+  campusEvents: "/events",
+  hospitalPlaces: "/hospital/places",
+  facultyDirectory: "/faculty/directory",
 
   // ── Akademisyen — Mevcut ──
   facultyPendingApprovals: "/faculty/approvals/pending",

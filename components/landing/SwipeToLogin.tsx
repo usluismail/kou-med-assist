@@ -1,8 +1,6 @@
 /**
- * SwipeToLogin.tsx — "Giriş için kaydır" pill bileşeni.
- *
- * SRP: Yalnızca swipe-to-login etkileşiminden sorumlu.
- * PanResponder kullanır (react-native built-in, extra dep gerekmez).
+ * SwipeToLogin.tsx — "Giriş için kaydır" pill (hero üzerinde).
+ * KOÜ Mobil referans: lim yeşili knob + yarı saydam koyu pill.
  */
 import { useRef } from "react";
 import {
@@ -15,10 +13,10 @@ import {
 import { ArrowRight } from "lucide-react-native";
 import { landingColors } from "@/lib/theme";
 
-const PILL_H = 64;
-const KNOB_SIZE = 48;
+const PILL_H = 58;
+const KNOB_SIZE = 46;
 const SCREEN_W = Dimensions.get("window").width;
-const PILL_W = SCREEN_W - 32 * 2;
+const PILL_W = SCREEN_W - 24 * 2 - 22 * 2;
 const MAX_DRAG = PILL_W - KNOB_SIZE - 8;
 
 type Props = {
@@ -64,12 +62,6 @@ export function SwipeToLogin({ onSwipeComplete }: Props) {
     extrapolate: "clamp",
   });
 
-  const knobBg = dragX.interpolate({
-    inputRange: [0, MAX_DRAG],
-    outputRange: [landingColors.white, landingColors.primary],
-    extrapolate: "clamp",
-  });
-
   const progressW = dragX.interpolate({
     inputRange: [0, MAX_DRAG],
     outputRange: [KNOB_SIZE + 8, PILL_W],
@@ -80,14 +72,15 @@ export function SwipeToLogin({ onSwipeComplete }: Props) {
     <View style={styles.pill}>
       <Animated.View style={[styles.progressBar, { width: progressW }]} />
       <Animated.View
-        style={[styles.knob, { transform: [{ translateX: dragX }], backgroundColor: knobBg }]}
+        style={[styles.knob, { transform: [{ translateX: dragX }] }]}
         {...panResponder.panHandlers}
       >
-        <ArrowRight size={20} color={landingColors.primary} />
+        <ArrowRight size={20} color={landingColors.heroEmerald} strokeWidth={2.5} />
       </Animated.View>
-      <Animated.Text style={[styles.pillText, { opacity: textOpacity }]}>
-        Giriş için kaydır
-      </Animated.Text>
+      <Animated.View style={[styles.textBlock, { opacity: textOpacity }]}>
+        <Animated.Text style={styles.pillText}>Giriş için kaydır</Animated.Text>
+        <Animated.Text style={styles.pillSub}>Öğrenci veya akademisyen hesabınla</Animated.Text>
+      </Animated.View>
     </View>
   );
 }
@@ -99,37 +92,41 @@ const styles = StyleSheet.create({
     borderRadius: PILL_H / 2,
     backgroundColor: landingColors.swipePill,
     borderWidth: 1,
-    borderColor: landingColors.glassBorderStrong,
+    borderColor: "rgba(255,255,255,0.18)",
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 4,
+    paddingLeft: 6,
     overflow: "hidden",
   },
   progressBar: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: landingColors.primaryGlow30,
+    backgroundColor: "rgba(184,212,74,0.22)",
     borderRadius: PILL_H / 2,
   },
   knob: {
     width: KNOB_SIZE,
     height: KNOB_SIZE,
     borderRadius: KNOB_SIZE / 2,
+    backgroundColor: landingColors.swipeKnob,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
-    shadowColor: landingColors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+  },
+  textBlock: {
+    flex: 1,
+    alignItems: "center",
+    marginRight: KNOB_SIZE + 8,
   },
   pillText: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: landingColors.swipeText,
-    letterSpacing: 0.3,
-    marginRight: KNOB_SIZE + 12,
+    letterSpacing: 0.2,
+  },
+  pillSub: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.65)",
+    marginTop: 1,
   },
 });

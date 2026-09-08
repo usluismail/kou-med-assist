@@ -1,9 +1,8 @@
 /**
- * HeroCard.tsx — Full-bleed immersive hero bileşeni.
+ * HeroCard.tsx — Açık zemin üzerinde kompakt kurumsal hero.
  *
- * SRP: Yalnızca landing hero ekranından sorumlu.
- * KOÜ Tıp logosu, compact header ve e-tip-mobil referans alınan
- * "Giriş için kaydır" swipe pill içerir.
+ * Header (logo + Giriş yap) açık zeminde; hero kartı koyu zümrüt overlay
+ * ile Umuttepe görseli taşır. KOÜ Mobil referans akışına uyumlu.
  */
 import { useEffect, useRef } from "react";
 import {
@@ -20,23 +19,28 @@ import { Lock, Sun } from "lucide-react-native";
 import { landingColors } from "@/lib/theme";
 import { SwipeToLogin } from "./SwipeToLogin";
 
-const { width: W, height: H } = Dimensions.get("window");
-const HERO_H = Math.round(H * 0.52);
+const { width: W } = Dimensions.get("window");
+const HERO_H = Math.round(W * 0.92);
 
 const now = new Date();
 const DAY_NAMES = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 const MONTH_NAMES = [
-  "Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
-  "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık",
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
 ];
-const dateLabel = `${now.getDate()} ${MONTH_NAMES[now.getMonth()]} · ${DAY_NAMES[now.getDay()]}`;
+const MONTH_SHORT = [
+  "OCA", "ŞUB", "MAR", "NIS", "MAY", "HAZ",
+  "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA",
+];
+const dateLabel = `${now.getDate()} ${MONTH_SHORT[now.getMonth()]} · UMUTTEPE`;
+const greeting =
+  now.getHours() < 12 ? "Günaydın." : now.getHours() < 18 ? "İyi günler." : "İyi akşamlar.";
 
 type Props = {
   onSwipeComplete: () => void;
 };
 
 export function HeroCard({ onSwipeComplete }: Props) {
-  // Ping animasyonu
   const pingScale = useRef(new Animated.Value(1)).current;
   const pingOpacity = useRef(new Animated.Value(0.8)).current;
 
@@ -59,9 +63,8 @@ export function HeroCard({ onSwipeComplete }: Props) {
 
   return (
     <View style={styles.wrapper}>
-      {/* ── COMPACT HEADER (Logo + Başlık + Giriş Yap) ─────────────────── */}
+      {/* Açık zemin header */}
       <View style={styles.header}>
-        {/* Logo + Metin */}
         <View style={styles.brandRow}>
           <View style={styles.logoWrap}>
             <RNImage
@@ -76,31 +79,25 @@ export function HeroCard({ onSwipeComplete }: Props) {
           </View>
         </View>
 
-        {/* Giriş Yap butonu */}
         <Pressable
           onPress={onSwipeComplete}
           style={({ pressed }) => [styles.loginBtn, pressed && { opacity: 0.85 }]}
         >
-          <Lock size={13} color={landingColors.bg} strokeWidth={2.5} />
+          <Lock size={13} color={landingColors.primary} strokeWidth={2.5} />
           <Text style={styles.loginBtnText}>Giriş yap</Text>
         </Pressable>
       </View>
 
-      {/* ── HERO KARTI ──────────────────────────────────────────────────── */}
+      {/* Koyu zümrüt hero kartı */}
       <View style={[styles.hero, { width: W - 24, height: HERO_H }]}>
-        {/* Kampüs fotoğrafı */}
         <Image
           source={require("../../assets/campus/hero-campus.jpg")}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
         />
-
-        {/* Koyu yeşil overlay — e-tip-mobil'deki gibi */}
         <View style={styles.heroOverlay} />
 
-        {/* Hero içerik */}
         <View style={styles.heroContent}>
-          {/* Üst: tarih + hava */}
           <View style={styles.topRow}>
             <View style={styles.dateRow}>
               <View style={styles.pingWrap}>
@@ -112,21 +109,20 @@ export function HeroCard({ onSwipeComplete }: Props) {
                 />
                 <View style={styles.pingDot} />
               </View>
-              <Text style={styles.dateText}>{dateLabel.toUpperCase()} · UMUTTEPE</Text>
+              <Text style={styles.dateText}>{dateLabel}</Text>
             </View>
             <View style={styles.weatherChip}>
-              <Sun size={12} color={landingColors.primaryLight} strokeWidth={2.5} />
-              <Text style={styles.weatherText}>24°C</Text>
+              <Sun size={12} color={landingColors.ctaLime} strokeWidth={2.5} />
+              <Text style={styles.weatherText}>24°</Text>
             </View>
           </View>
 
-          {/* Ana başlık */}
-          <Text style={styles.headline}>İyi günler.</Text>
+          <Text style={styles.headline}>{greeting}</Text>
           <Text style={styles.sub}>
-            Kocaeli Üniversitesi Tıp Fakültesi & Uygulama Hastanesi
+            Kocaeli Üniversitesi Tıp Fakültesi · {DAY_NAMES[now.getDay()]},{" "}
+            {now.getDate()} {MONTH_NAMES[now.getMonth()]}
           </Text>
 
-          {/* Swipe pill — e-tip-mobil stili */}
           <View style={styles.swipeWrap}>
             <SwipeToLogin onSwipeComplete={onSwipeComplete} />
           </View>
@@ -140,39 +136,31 @@ const styles = StyleSheet.create({
   wrapper: {
     alignItems: "center",
     paddingHorizontal: 12,
-    gap: 16,
+    gap: 14,
   },
 
-  /* ── Header ─────────────────────────────────────────────────────────── */
   header: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 4,
-    paddingTop: 8,
+    paddingTop: 4,
   },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logoWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: landingColors.white,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    // subtle shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: landingColors.glassBorder,
   },
-  logoImg: {
-    width: 44,
-    height: 44,
-  },
-  brandText: { gap: 2 },
+  logoImg: { width: 40, height: 40 },
+  brandText: { gap: 1 },
   brandTitle: {
     fontSize: 17,
     fontWeight: "800",
@@ -192,40 +180,35 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: landingColors.glassBorder,
   },
   loginBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: landingColors.bg,
+    color: landingColors.primary,
   },
 
-  /* ── Hero kart ────────────────────────────────────────────────────── */
   hero: {
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: "hidden",
   },
   heroOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(9,51,37,0.62)",
+    backgroundColor: "rgba(12,46,34,0.58)",
   },
   heroContent: {
     flex: 1,
     justifyContent: "flex-end",
     padding: 22,
-    paddingBottom: 26,
+    paddingBottom: 22,
   },
 
-  /* Tarih + hava */
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 18,
   },
   dateRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   pingWrap: { width: 10, height: 10, alignItems: "center", justifyContent: "center" },
@@ -246,34 +229,33 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.82)",
     letterSpacing: 0.8,
   },
   weatherChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.14)",
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 4,
   },
   weatherText: { fontSize: 11, fontWeight: "600", color: landingColors.white },
 
-  /* Başlık */
   headline: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: "900",
     color: landingColors.white,
-    lineHeight: 44,
-    letterSpacing: -1.5,
+    lineHeight: 42,
+    letterSpacing: -1.4,
     marginBottom: 8,
   },
   sub: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.78)",
     lineHeight: 18,
-    marginBottom: 24,
+    marginBottom: 22,
   },
   swipeWrap: { alignItems: "stretch" },
 });

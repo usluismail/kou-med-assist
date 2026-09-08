@@ -422,3 +422,68 @@ export type CreateAnnouncementInput = {
   channels?: AnnouncementChannel[];
 };
 
+// ─────────────────────────────────────────────────────────
+// PORTAL (giriş öncesi) — Duyuru & Etkinlik
+// ─────────────────────────────────────────────────────────
+export type PortalAnnouncementCategory = "klinik" | "akademik" | "fakulte" | "staj";
+
+export type PortalAnnouncement = {
+  id: string;
+  day: string;
+  month: string;
+  dateIso: string;
+  unit: string;
+  category: PortalAnnouncementCategory;
+  title: string;
+  summary: string;
+  body: string;
+  pdfUrl: string | null;
+};
+
+export type CampusEvent = {
+  id: string;
+  day: string;
+  month: string;
+  dateIso: string;
+  time: string;
+  organizer: string;
+  title: string;
+  description: string;
+  location: string;
+  speakerName: string | null;
+  speakerTitle: string | null;
+  accent: "emerald" | "violet" | "sky" | "amber";
+};
+
+// ─────────────────────────────────────────────────────────
+// PORTAL — Hastane rehberi & akademik kadro
+// ─────────────────────────────────────────────────────────
+export type HospitalPlaceCategory =
+  | "poliklinik"
+  | "amfi"
+  | "acil"
+  | "lab"
+  | "idari"
+  | "servis";
+
+export type HospitalPlace = {
+  id: string;
+  name: string;
+  block: string;
+  floor: string;
+  category: HospitalPlaceCategory;
+  hint: string;
+  tags: string[];
+};
+
+export type FacultyStaffMember = {
+  id: string;
+  name: string;
+  title: string;
+  department: string;
+  office: string | null;
+  email: string | null;
+  phone: string | null;
+  role: "dean" | "chair" | "faculty" | "advisor";
+};
+

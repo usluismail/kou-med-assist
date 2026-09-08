@@ -1,7 +1,5 @@
 /**
- * FeaturedScroll.tsx — "Öne çıkanlar" yatay carousel.
- *
- * SRP: Yalnızca kampüs/fakülte öne çıkan içerik kartlarından sorumlu.
+ * FeaturedScroll.tsx — "Öne çıkanlar" yatay carousel (açık zemin, beyaz kart).
  */
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
@@ -70,17 +68,13 @@ export function FeaturedScroll() {
       >
         {items.map((item) => (
           <View key={item.id} style={styles.card}>
-            {/* Görsel alan */}
             <View style={styles.imgWrap}>
               <Image source={item.src} style={StyleSheet.absoluteFill} contentFit="cover" />
-              {/* Gradient overlay */}
               <View style={styles.imgOverlay} />
-              {/* Badge */}
               <View style={[styles.badge, { backgroundColor: item.badgeBg }]}>
                 <Text style={[styles.badgeText, { color: item.badgeText }]}>{item.badge}</Text>
               </View>
             </View>
-            {/* Alt içerik */}
             <View style={styles.cardBody}>
               <Text style={styles.cardDate}>{item.date} · 2026</Text>
               <Text style={styles.cardTitle} numberOfLines={2}>
@@ -115,11 +109,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: landingColors.glassBorder,
     overflow: "hidden",
-    shadowColor: landingColors.primaryGlow30,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 6,
   },
   imgWrap: {
     height: 138,
@@ -128,7 +117,7 @@ const styles = StyleSheet.create({
   },
   imgOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(8,15,24,0.35)",
+    backgroundColor: "rgba(12,46,34,0.18)",
   },
   badge: {
     position: "absolute",

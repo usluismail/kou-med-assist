@@ -13,13 +13,13 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <ToastProvider>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             <Stack
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.background },
                 animation: "slide_from_right",
-                gestureEnabled: false,
+                gestureEnabled: true,
               }}
             />
           </ToastProvider>
