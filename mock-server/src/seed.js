@@ -1430,6 +1430,94 @@ const grades = {
   },
 };
 
+/**
+ * Öne çıkanlar — canlı KOÜ API (tip.kocaeli.edu.tr → code 1019).
+ * Kaynak: GET https://api.kocaeli.edu.tr/api/News/GetAll?TranslationCode=0&Count=6
+ * Görseller: FileOperation?filePath=…  (2026-09 scrape)
+ * docs/ONE-CIKANLAR.md
+ */
+const featuredItems = [
+  {
+    id: "news-1",
+    remoteId: "a8ddb1b6-c93c-4e1a-3765-08df09a9d203",
+    title: "Dikey Entegrasyon Çalışma Grubu Toplantısı",
+    publishedAt: "2026-09-03",
+    sourceUrl:
+      "https://tip.kocaeli.edu.tr/haberler/dikey-entegrasyon-calisma-grubu-toplantisi-4d3",
+    source: "news",
+    badge: "HABER",
+    imagePath: "/featured/featured-1.jpg",
+    summary: "Dikey Entegrasyon Çalışma Grubu Toplantısı",
+    slug: "dikey-entegrasyon-calisma-grubu-toplantisi-4d3",
+  },
+  {
+    id: "news-2",
+    remoteId: "72c3b126-2811-47a5-1e42-08dee3184529",
+    title: "KOÜ Kalplerimize Dokunuyor...",
+    publishedAt: "2026-07-16",
+    sourceUrl: "https://tip.kocaeli.edu.tr/haberler/kou-kalplerimize-dokunuyor-752",
+    source: "news",
+    badge: "HABER",
+    imagePath: "/featured/featured-2.jpg",
+    summary: "KOÜ Kalplerimize Dokunuyor...",
+    slug: "kou-kalplerimize-dokunuyor-752",
+  },
+  {
+    id: "news-3",
+    remoteId: "7f1e9c8e-aac1-4029-f7d5-08dede5a5ed8",
+    title:
+      "Fakültemiz Öğretim Üyeleri Uluslararası FAIMER Enstitüsü (IFI) Programından Mezun Oldu",
+    publishedAt: "2026-07-10",
+    sourceUrl:
+      "https://tip.kocaeli.edu.tr/haberler/fakultemiz-ogretim-uyeleri-uluslararasi-faimer-enstitusu-ifi-programindan-mezun-oldu-450",
+    source: "news",
+    badge: "HABER",
+    imagePath: "/featured/featured-3.png",
+    summary:
+      "Fakültemiz Öğretim Üyeleri Uluslararası FAIMER Enstitüsü (IFI) Programından Mezun Oldu",
+    slug: "fakultemiz-ogretim-uyeleri-uluslararasi-faimer-enstitusu-ifi-programindan-mezun-oldu-450",
+  },
+  {
+    id: "news-4",
+    remoteId: "7ded27e8-7002-4b28-df96-08dedd9602d3",
+    title: "Fakültemiz Çocuk Cerrahisi Anabilim Dalı Akreditasyon Onayı",
+    publishedAt: "2026-07-09",
+    sourceUrl:
+      "https://tip.kocaeli.edu.tr/haberler/fakultemiz-cocuk-cerrahisi-anabilim-dali-akreditasyon-onayi-035",
+    source: "news",
+    badge: "HABER",
+    imagePath: "/featured/featured-4.jpg",
+    summary: "Fakültemiz Çocuk Cerrahisi Anabilim Dalı Akreditasyon Onayı",
+    slug: "fakultemiz-cocuk-cerrahisi-anabilim-dali-akreditasyon-onayi-035",
+  },
+  {
+    id: "news-5",
+    remoteId: "d10fbfc5-2f49-43bb-21d3-08dedc2619d7",
+    title: "KOÜSİM Yönetim Kurulu Toplantısı Yapıldı",
+    publishedAt: "2026-07-07",
+    sourceUrl:
+      "https://tip.kocaeli.edu.tr/haberler/kousim-yonetim-kurulu-toplantisi-yapildi-fd3",
+    source: "news",
+    badge: "HABER",
+    imagePath: "/featured/featured-5.jpg",
+    summary: "KOÜSİM Yönetim Kurulu Toplantısı Yapıldı",
+    slug: "kousim-yonetim-kurulu-toplantisi-yapildi-fd3",
+  },
+  {
+    id: "news-6",
+    remoteId: "2cfe6217-84d9-4f70-9ed2-08ded7574a95",
+    title: "2026–2027 İntörn Uyum Programı Gerçekleştirildi",
+    publishedAt: "2026-07-01",
+    sourceUrl:
+      "https://tip.kocaeli.edu.tr/haberler/20262027-intorn-uyum-programi-gerceklestirildi-274",
+    source: "news",
+    badge: "HABER",
+    imagePath: "/featured/featured-6.jpg",
+    summary: "2026–2027 İntörn Uyum Programı Gerçekleştirildi",
+    slug: "20262027-intorn-uyum-programi-gerceklestirildi-274",
+  },
+];
+
 module.exports = {
   users,
   supervisors,
@@ -1454,4 +1542,5 @@ module.exports = {
   hospitalPlaces,
   facultyDirectory,
   grades,
+  featuredItems,
 };

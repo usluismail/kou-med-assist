@@ -10,6 +10,7 @@ import type {
   CampusEvent,
   CafeteriaMenu,
   FacultyStaffMember,
+  FeaturedItem,
   HospitalPlace,
   Message,
   PortalAnnouncement,
@@ -55,6 +56,16 @@ export async function fetchHospitalPlaces(): Promise<HospitalPlace[]> {
 export async function fetchFacultyDirectory(): Promise<FacultyStaffMember[]> {
   return adaptIdentity(
     await apiRequest<FacultyStaffMember[]>(endpoints.facultyDirectory, {}),
+  );
+}
+
+/** Landing öne çıkanlar — son 6 haber / ileride featured flag */
+export async function fetchFeaturedItems(limit = 6): Promise<FeaturedItem[]> {
+  return adaptIdentity(
+    await apiRequest<FeaturedItem[]>(
+      `${endpoints.portalFeatured}?limit=${limit}`,
+      {},
+    ),
   );
 }
 

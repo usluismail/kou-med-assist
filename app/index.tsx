@@ -23,12 +23,10 @@ import { useAuth } from "@/lib/api/AuthContext";
 import { ROLE_HOME_HREF } from "@/lib/nav";
 import { landingColors } from "@/lib/theme";
 import { HeroCard } from "@/components/landing/HeroCard";
-import { ExploreGrid } from "@/components/landing/ExploreGrid";
 import { FeaturedScroll } from "@/components/landing/FeaturedScroll";
+import { ExploreGrid } from "@/components/landing/ExploreGrid";
 import { AnnouncementPreview } from "@/components/landing/AnnouncementPreview";
-import { AcademicCalendarPreview } from "@/components/landing/AcademicCalendarPreview";
 import { HospitalBanner } from "@/components/landing/HospitalBanner";
-import { FeatureTeasers } from "@/components/landing/FeatureTeasers";
 import { CorporateStory } from "@/components/landing/CorporateStory";
 
 export default function Index() {
@@ -50,35 +48,18 @@ export default function Index() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 48 },
+          { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 12) },
         ]}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        {/* Hero (kendi header'ını içeriyor — logo + giriş yap + kampüs kartı) */}
         <HeroCard onSwipeComplete={() => setSheetOpen(true)} />
-
-        {/* Giriş yapmadan keşfet — yatay kaydırılabilir tile'lar */}
-        <ExploreGrid />
-
-        {/* Öne çıkanlar carousel */}
         <FeaturedScroll />
-
-        {/* Duyurular önizleme */}
+        <ExploreGrid />
         <AnnouncementPreview />
-
-        {/* Akademik ajanda önizleme */}
-        <AcademicCalendarPreview />
-
-        {/* Hastane rehberi banner */}
         <HospitalBanner />
-
-        {/* Giriş sonrası özellik vitrini */}
-        <FeatureTeasers onLoginPress={() => setSheetOpen(true)} />
-
-        {/* 1994 kurumsal kimlik */}
         <CorporateStory />
 
-        {/* Kocaeli silüeti — kenardan kenara, doğal oran */}
         <View style={styles.skylineWrap}>
           <Image
             source={require("../assets/campus/kocaeli-skyline.png")}
@@ -89,13 +70,11 @@ export default function Index() {
           />
         </View>
 
-        {/* Footer — silüetin hemen altında */}
         <Text style={styles.footer}>
           Kocaeli Üniversitesi Tıp Fakültesi Dekanlığı © 2026
         </Text>
       </ScrollView>
 
-      {/* ── Login Sheet ─────────────────────────────────────────────────── */}
       {sheetOpen && <LoginSheet onClose={() => setSheetOpen(false)} />}
     </View>
   );
@@ -123,7 +102,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 6,
-    marginBottom: 8,
+    marginBottom: 4,
     paddingHorizontal: 16,
     textAlign: "center",
     fontSize: 11,

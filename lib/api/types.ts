@@ -487,3 +487,24 @@ export type FacultyStaffMember = {
   role: "dean" | "chair" | "faculty" | "advisor";
 };
 
+// ─────────────────────────────────────────────────────────
+// PORTAL — Öne çıkanlar (haber vitrini)
+// ─────────────────────────────────────────────────────────
+export type FeaturedSource =
+  | "news"
+  | "event"
+  | "announcement"
+  | "editorial"
+  | "fallback";
+
+export type FeaturedItem = {
+  id: string;
+  title: string;
+  publishedAt: string;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  source: FeaturedSource;
+  badge: string;
+  summary: string | null;
+};
+

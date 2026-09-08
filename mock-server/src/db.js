@@ -32,6 +32,7 @@ function createDb() {
     campusEvents: structuredClone(seed.campusEvents || []),
     hospitalPlaces: structuredClone(seed.hospitalPlaces || []),
     facultyDirectory: structuredClone(seed.facultyDirectory || []),
+    featuredItems: structuredClone(seed.featuredItems || []),
 
     // ── OSCE ──
     osceSessions: structuredClone(seed.osceSessions),

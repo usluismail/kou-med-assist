@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const { createDb } = require("./db");
 const { createRoutes } = require("./routes");
 
@@ -11,6 +12,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "../public")));
 
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()}  ${req.method} ${req.path}`);
@@ -35,5 +37,6 @@ app.listen(PORT, HOST, () => {
   console.log("  hoca     → ayse.kaya@kocaeli.edu.tr / hoca123");
   console.log("");
   console.log("  GET /health ile kontrol edin");
+  console.log("  GET /portal/featured — öne çıkanlar");
   console.log("");
 });

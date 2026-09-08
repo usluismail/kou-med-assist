@@ -1,18 +1,17 @@
 /**
- * ExploreGrid.tsx — "Giriş yapmadan keşfet" pastel kutu grid.
+ * ExploreGrid.tsx — 3 kompakt keşfet kutusu (tek satır, az yer).
+ * Duyurular · Etkinlikler · Yemekhane
  */
+import { useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   UtensilsCrossed,
-  Building2,
   Megaphone,
-  Users,
   ArrowUpRight,
   CalendarDays,
 } from "lucide-react-native";
 import { useRouter, type Href } from "expo-router";
 import { landingColors } from "@/lib/theme";
-import { useRef } from "react";
 
 type Tile = {
   id: string;
@@ -20,7 +19,7 @@ type Tile = {
   title: string;
   bg: string;
   fg: string;
-  href?: Href;
+  href: Href;
 };
 
 const tiles: Tile[] = [
@@ -48,30 +47,6 @@ const tiles: Tile[] = [
     fg: landingColors.tilePeachFg,
     href: "/yemekhane",
   },
-  {
-    id: "hospital",
-    icon: Building2,
-    title: "Hastane",
-    bg: landingColors.tileMint,
-    fg: landingColors.tileMintFg,
-    href: "/hastane",
-  },
-  {
-    id: "faculty",
-    icon: Users,
-    title: "Kadro",
-    bg: landingColors.tileAmber,
-    fg: landingColors.tileAmberFg,
-    href: "/akademik-kadro",
-  },
-  {
-    id: "calendar",
-    icon: CalendarDays,
-    title: "Ajanda",
-    bg: landingColors.tileEmerald,
-    fg: landingColors.tileEmeraldFg,
-    href: "/etkinlikler",
-  },
 ];
 
 function TileCard({ tile, onPress }: { tile: Tile; onPress: () => void }) {
@@ -91,15 +66,13 @@ function TileCard({ tile, onPress }: { tile: Tile; onPress: () => void }) {
         onPressOut={onPressOut}
         onPress={onPress}
       >
-        <View style={styles.iconTop}>
-          <Icon size={26} color={tile.fg} strokeWidth={2} />
+        <View style={styles.iconRow}>
+          <Icon size={18} color={tile.fg} strokeWidth={2.2} />
+          <ArrowUpRight size={12} color={tile.fg} strokeWidth={2.5} />
         </View>
-        <View style={styles.tileFooter}>
-          <Text style={[styles.tileTitle, { color: tile.fg }]} numberOfLines={1}>
-            {tile.title}
-          </Text>
-          <ArrowUpRight size={16} color={tile.fg} strokeWidth={2.5} />
-        </View>
+        <Text style={[styles.tileTitle, { color: tile.fg }]} numberOfLines={1}>
+          {tile.title}
+        </Text>
       </Pressable>
     </Animated.View>
   );
@@ -110,16 +83,10 @@ export function ExploreGrid() {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Giriş yapmadan keşfet</Text>
+      <Text style={styles.sectionTitle}>Keşfet</Text>
       <View style={styles.grid}>
         {tiles.map((t) => (
-          <TileCard
-            key={t.id}
-            tile={t}
-            onPress={() => {
-              if (t.href) router.push(t.href);
-            }}
-          />
+          <TileCard key={t.id} tile={t} onPress={() => router.push(t.href)} />
         ))}
       </View>
     </View>
@@ -128,47 +95,41 @@ export function ExploreGrid() {
 
 const styles = StyleSheet.create({
   section: {
-    marginTop: 28,
+    marginTop: 22,
     paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: landingColors.text,
-    marginBottom: 14,
+    marginBottom: 10,
     letterSpacing: -0.3,
   },
   grid: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+    gap: 8,
   },
   tile: {
-    flexGrow: 1,
-    flexBasis: "30%",
-    maxWidth: "32%",
-    aspectRatio: 1,
-    borderRadius: 20,
+    flex: 1,
+    borderRadius: 14,
     overflow: "hidden",
+    minHeight: 72,
   },
   tilePressable: {
     flex: 1,
-    padding: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     justifyContent: "space-between",
+    gap: 8,
   },
-  iconTop: {
-    alignSelf: "flex-start",
-  },
-  tileFooter: {
+  iconRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 4,
   },
   tileTitle: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: -0.2,
-    flex: 1,
   },
 });

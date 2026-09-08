@@ -43,6 +43,7 @@ export const endpoints = {
   campusEvents: "/events",
   hospitalPlaces: "/hospital/places",
   facultyDirectory: "/faculty/directory",
+  portalFeatured: "/portal/featured",
 
   // ── Akademisyen — Mevcut ──
   facultyPendingApprovals: "/faculty/approvals/pending",

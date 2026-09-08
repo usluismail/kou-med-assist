@@ -502,6 +502,38 @@ function createRoutes(db) {
     res.json(db.facultyDirectory || []);
   });
 
+  /**
+   * GET /portal/featured — Öne çıkanlar vitrini (son 6 haber / ileride flag).
+   * Query: ?limit=6
+   */
+  router.get("/portal/featured", (req, res) => {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 6, 1), 12);
+    const host = req.get("host") || "localhost:3001";
+    const proto = req.protocol || "http";
+    const base = `${proto}://${host}`;
+
+    const sorted = [...(db.featuredItems || [])].sort(
+      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
+    );
+
+    res.json(
+      sorted.slice(0, limit).map((item) => ({
+        id: item.id,
+        title: item.title,
+        publishedAt: item.publishedAt,
+        sourceUrl: item.sourceUrl,
+        source: item.source,
+        badge: item.badge,
+        summary: item.summary || null,
+        imageUrl: item.imagePath
+          ? item.imagePath.startsWith("http")
+            ? item.imagePath
+            : `${base}${item.imagePath}`
+          : null,
+      }))
+    );
+  });
+
   // ════════════════════════════════════════════════════
   // DÖNEM 1-2-3 (PRE-KLİNİK) — Ders programı & danışman
   // ════════════════════════════════════════════════════
