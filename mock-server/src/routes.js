@@ -487,7 +487,7 @@ function createRoutes(db) {
   /** GET /events — akademik etkinlik / seminer listesi */
   router.get("/events", (_req, res) => {
     const sorted = [...(db.campusEvents || [])].sort(
-      (a, b) => new Date(a.dateIso) - new Date(b.dateIso)
+      (a, b) => new Date(b.dateIso) - new Date(a.dateIso)
     );
     res.json(sorted);
   });
@@ -503,7 +503,8 @@ function createRoutes(db) {
   });
 
   /**
-   * GET /portal/featured — Öne çıkanlar vitrini (son 6 haber / ileride flag).
+   * GET /portal/featured — Öne çıkanlar vitrini.
+   * Haber + etkinlik + duyuru birleşimi; görseli olanlar, tarihe göre ilk N.
    * Query: ?limit=6
    */
   router.get("/portal/featured", (req, res) => {
@@ -512,26 +513,64 @@ function createRoutes(db) {
     const proto = req.protocol || "http";
     const base = `${proto}://${host}`;
 
-    const sorted = [...(db.featuredItems || [])].sort(
-      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
-    );
+    const abs = (path) => {
+      if (!path) return null;
+      if (path.startsWith("http")) return path;
+      // App-bundle campus paths — istemci yerel resolve eder
+      if (path.startsWith("/assets/")) return path;
+      return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+    };
 
-    res.json(
-      sorted.slice(0, limit).map((item) => ({
+    const pool = [];
+
+    for (const item of db.featuredItems || []) {
+      const imageUrl = abs(item.imagePath || item.imageUrl);
+      if (!imageUrl) continue;
+      pool.push({
         id: item.id,
         title: item.title,
         publishedAt: item.publishedAt,
-        sourceUrl: item.sourceUrl,
-        source: item.source,
-        badge: item.badge,
+        sourceUrl: item.sourceUrl || null,
+        source: item.source || "news",
+        badge: item.badge || "HABER",
         summary: item.summary || null,
-        imageUrl: item.imagePath
-          ? item.imagePath.startsWith("http")
-            ? item.imagePath
-            : `${base}${item.imagePath}`
-          : null,
-      }))
+        imageUrl,
+      });
+    }
+
+    for (const ev of db.campusEvents || []) {
+      if (!ev.imageUrl) continue;
+      pool.push({
+        id: ev.id,
+        title: ev.title,
+        publishedAt: ev.dateIso,
+        sourceUrl: ev.sourceUrl || "https://tip.kocaeli.edu.tr",
+        source: "event",
+        badge: "ETKİNLİK",
+        summary: ev.description || null,
+        imageUrl: abs(ev.imageUrl),
+      });
+    }
+
+    for (const ann of db.portalAnnouncements || []) {
+      if (!ann.imageUrl) continue;
+      pool.push({
+        id: ann.id,
+        title: ann.title,
+        publishedAt: ann.dateIso,
+        sourceUrl: ann.pdfUrl || ann.sourceUrl || "https://tip.kocaeli.edu.tr/duyurular",
+        source: "announcement",
+        badge: "DUYURU",
+        summary: ann.summary || null,
+        imageUrl: abs(ann.imageUrl),
+      });
+    }
+
+    const sorted = pool.sort(
+      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
     );
+
+    res.json(sorted.slice(0, limit));
   });
 
   // ════════════════════════════════════════════════════

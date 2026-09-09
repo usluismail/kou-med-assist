@@ -425,19 +425,20 @@ export type CreateAnnouncementInput = {
 // ─────────────────────────────────────────────────────────
 // PORTAL (giriş öncesi) — Duyuru & Etkinlik
 // ─────────────────────────────────────────────────────────
-export type PortalAnnouncementCategory = "klinik" | "akademik" | "fakulte" | "staj";
-
 export type PortalAnnouncement = {
   id: string;
   day: string;
   month: string;
   dateIso: string;
   unit: string;
-  category: PortalAnnouncementCategory;
   title: string;
   summary: string;
   body: string;
   pdfUrl: string | null;
+  /** Yerel veya uzak görsel (tip.kocaeli.edu.tr kaynaklı mock) */
+  imageUrl?: string | null;
+  /** PDF yoksa yönlenecek kaynak (ör. tip.kocaeli.edu.tr/duyurular) */
+  sourceUrl?: string | null;
 };
 
 export type CampusEvent = {
@@ -453,6 +454,8 @@ export type CampusEvent = {
   speakerName: string | null;
   speakerTitle: string | null;
   accent: "emerald" | "violet" | "sky" | "amber";
+  /** Yerel veya uzak afiş/görsel */
+  imageUrl?: string | null;
 };
 
 // ─────────────────────────────────────────────────────────
@@ -488,7 +491,7 @@ export type FacultyStaffMember = {
 };
 
 // ─────────────────────────────────────────────────────────
-// PORTAL — Öne çıkanlar (haber vitrini)
+// PORTAL — Öne çıkanlar (haber + etkinlik + duyuru vitrini)
 // ─────────────────────────────────────────────────────────
 export type FeaturedSource =
   | "news"

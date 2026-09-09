@@ -59,7 +59,7 @@ export async function fetchFacultyDirectory(): Promise<FacultyStaffMember[]> {
   );
 }
 
-/** Landing öne çıkanlar — son 6 haber / ileride featured flag */
+/** Landing öne çıkanlar — görselli haber/etkinlik/duyuru, tarihe göre */
 export async function fetchFeaturedItems(limit = 6): Promise<FeaturedItem[]> {
   return adaptIdentity(
     await apiRequest<FeaturedItem[]>(

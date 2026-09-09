@@ -1,5 +1,6 @@
 /**
  * app/etkinlikler.tsx — Akademik etkinlik / seminer listesi.
+ * Kaynak: tip.kocaeli.edu.tr (unit 1019) → mock /events + yerel afişler.
  */
 import {
   ActivityIndicator,
@@ -9,44 +10,16 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { CalendarPlus, MapPin } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PortalSubHeader } from "@/components/landing/PortalSubHeader";
 import { fetchCampusEvents } from "@/lib/api";
 import { usePublicResource } from "@/lib/api/hooks/core";
 import type { CampusEvent } from "@/lib/api/types";
+import { LIVE_CAMPUS_EVENTS } from "@/lib/portal/liveFallbacks";
+import { resolvePortalImage } from "@/lib/portal/localMedia";
 import { landingColors } from "@/lib/theme";
-
-const FALLBACK: CampusEvent[] = [
-  {
-    id: "ev-1",
-    day: "16",
-    month: "EYL",
-    dateIso: "2026-09-16",
-    time: "14:00",
-    organizer: "KOCAELİ ÜNİVERSİTESİ TIP FAKÜLTESİ",
-    title: "Tıp Fakültesi Söyleşileri: Moleküler Biyoloji",
-    description: "Klinik genetiğin güncel uygulamaları üzerine akademik söyleşi.",
-    location: "Konferans Salonu · Morfoloji",
-    speakerName: "Prof. Dr. Aslı Tolun",
-    speakerTitle: "Boğaziçi Üniversitesi",
-    accent: "sky",
-  },
-  {
-    id: "ev-2",
-    day: "22",
-    month: "EYL",
-    dateIso: "2026-09-22",
-    time: "13:30",
-    organizer: "DAHİLİYE ANABİLİM DALI",
-    title: "Klinik Vaka Sunumu: Kardiyoloji",
-    description: "Haftalık vaka tartışması — intörn ve stajyerlere açık.",
-    location: "Amfi 3 · Umuttepe",
-    speakerName: "Prof. Dr. Hasan Arslan",
-    speakerTitle: "Kardiyoloji",
-    accent: "emerald",
-  },
-];
 
 const ACCENT: Record<CampusEvent["accent"], { panel: string; badge: string }> = {
   emerald: { panel: "#0C5C3D", badge: landingColors.primaryDark },
@@ -58,7 +31,7 @@ const ACCENT: Record<CampusEvent["accent"], { panel: string; badge: string }> = 
 export default function EtkinliklerScreen() {
   const insets = useSafeAreaInsets();
   const { data, loading } = usePublicResource(fetchCampusEvents);
-  const items = data?.length ? data : FALLBACK;
+  const items = data?.length ? data : LIVE_CAMPUS_EVENTS;
 
   return (
     <View style={styles.root}>
@@ -78,10 +51,20 @@ export default function EtkinliklerScreen() {
         ) : null}
 
         {items.map((ev) => {
-          const accent = ACCENT[ev.accent];
+          const accent = ACCENT[ev.accent] ?? ACCENT.emerald;
+          const localImg = resolvePortalImage(ev.id, ev.imageUrl);
           return (
             <View key={ev.id} style={styles.card}>
-              <View style={[styles.visual, { backgroundColor: accent.panel }]}>
+              <View style={[styles.visual, !localImg && { backgroundColor: accent.panel }]}>
+                {localImg ? (
+                  <Image
+                    source={localImg}
+                    style={styles.poster}
+                    contentFit="cover"
+                    transition={150}
+                  />
+                ) : null}
+                <View style={styles.visualScrim} pointerEvents="none" />
                 <View style={styles.visualContent}>
                   {ev.speakerName ? (
                     <>
@@ -101,7 +84,9 @@ export default function EtkinliklerScreen() {
                       ) : null}
                     </>
                   ) : (
-                    <Text style={styles.visualFallback}>{ev.organizer}</Text>
+                    <Text style={styles.visualFallback} numberOfLines={2}>
+                      {ev.title}
+                    </Text>
                   )}
                 </View>
                 <View style={[styles.dateBadge, { backgroundColor: accent.badge }]}>
@@ -113,7 +98,9 @@ export default function EtkinliklerScreen() {
               <View style={styles.body}>
                 <Text style={styles.organizer}>{ev.organizer}</Text>
                 <Text style={styles.title}>{ev.title}</Text>
-                <Text style={styles.desc}>{ev.description}</Text>
+                <Text style={styles.desc} numberOfLines={3}>
+                  {ev.description}
+                </Text>
                 <View style={styles.footer}>
                   <View style={styles.locRow}>
                     <MapPin size={13} color={landingColors.primary} strokeWidth={2.4} />
@@ -160,11 +147,22 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   visual: {
-    height: 140,
+    height: 168,
     padding: 16,
     justifyContent: "flex-end",
+    overflow: "hidden",
+    backgroundColor: "#0C2E22",
   },
-  visualContent: { gap: 4, paddingRight: 56 },
+  poster: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  visualScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(8,30,22,0.28)",
+  },
+  visualContent: { gap: 4, paddingRight: 56, zIndex: 1 },
   avatar: {
     width: 48,
     height: 48,
@@ -191,6 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 6,
     alignItems: "center",
+    zIndex: 2,
   },
   badgeDay: { color: "#fff", fontSize: 16, fontWeight: "800", lineHeight: 18 },
   badgeMonth: {

@@ -1,6 +1,6 @@
 /**
  * FeaturedScroll.tsx — Öne çıkanlar carousel.
- * 1. kart sola yaslı (başlık hizası); 2+ kart ortalı + yan peek/blur/zoom.
+ * Haber + etkinlik + duyuru (görselli), tarihe göre ilk 6.
  * docs/ONE-CIKANLAR.md
  */
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +18,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { ArrowRight } from "lucide-react-native";
 import { fetchFeaturedItems } from "@/lib/api/shared";
-import type { FeaturedItem } from "@/lib/api/types";
+import type { FeaturedItem, FeaturedSource } from "@/lib/api/types";
+import { buildFeaturedPool } from "@/lib/portal/buildFeatured";
+import { resolvePortalImage } from "@/lib/portal/localMedia";
 import { landingColors } from "@/lib/theme";
 
 const { width: W } = Dimensions.get("window");
@@ -29,14 +31,8 @@ const SIDE_PAD = Math.round((W - CARD_W) / 2);
 const LEFT_INSET = 16;
 const GAP = 12;
 const ITEM_W = CARD_W + GAP;
-const CARD_H = Math.round(CARD_W * 1.1); // dikey ~%10 daha kompakt
+const CARD_H = Math.round(CARD_W * 1.1);
 
-/**
- * Snap / fokus offset’leri:
- * - index 0 → 0 (sola yaslı)
- * - index ≥ 1 → kart ekranda ortalanır (önceki+sonraki peek)
- * - index < 0 → interpolasyon için sentetik
- */
 function focusOffset(index: number) {
   if (index < 0) return index * ITEM_W;
   if (index === 0) return 0;
@@ -52,75 +48,9 @@ const MONTHS = [
   "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA",
 ];
 
-const LOCAL_FALLBACK: FeaturedItem[] = [
-  {
-    id: "news-1",
-    title: "Dikey Entegrasyon Çalışma Grubu Toplantısı",
-    publishedAt: "2026-09-03",
-    sourceUrl: "https://tip.kocaeli.edu.tr/haberler/dikey-entegrasyon-calisma-grubu-toplantisi-4d3",
-    source: "news",
-    badge: "HABER",
-    summary: "Dikey Entegrasyon Çalışma Grubu Toplantısı",
-    imageUrl: null,
-  },
-  {
-    id: "news-2",
-    title: "KOÜ Kalplerimize Dokunuyor...",
-    publishedAt: "2026-07-16",
-    sourceUrl: "https://tip.kocaeli.edu.tr/haberler/kou-kalplerimize-dokunuyor-752",
-    source: "news",
-    badge: "HABER",
-    summary: "KOÜ Kalplerimize Dokunuyor...",
-    imageUrl: null,
-  },
-  {
-    id: "news-3",
-    title:
-      "Fakültemiz Öğretim Üyeleri Uluslararası FAIMER Enstitüsü (IFI) Programından Mezun Oldu",
-    publishedAt: "2026-07-10",
-    sourceUrl:
-      "https://tip.kocaeli.edu.tr/haberler/fakultemiz-ogretim-uyeleri-uluslararasi-faimer-enstitusu-ifi-programindan-mezun-oldu-450",
-    source: "news",
-    badge: "HABER",
-    summary:
-      "Fakültemiz Öğretim Üyeleri Uluslararası FAIMER Enstitüsü (IFI) Programından Mezun Oldu",
-    imageUrl: null,
-  },
-  {
-    id: "news-4",
-    title: "Fakültemiz Çocuk Cerrahisi Anabilim Dalı Akreditasyon Onayı",
-    publishedAt: "2026-07-09",
-    sourceUrl:
-      "https://tip.kocaeli.edu.tr/haberler/fakultemiz-cocuk-cerrahisi-anabilim-dali-akreditasyon-onayi-035",
-    source: "news",
-    badge: "HABER",
-    summary: "Fakültemiz Çocuk Cerrahisi Anabilim Dalı Akreditasyon Onayı",
-    imageUrl: null,
-  },
-  {
-    id: "news-5",
-    title: "KOÜSİM Yönetim Kurulu Toplantısı Yapıldı",
-    publishedAt: "2026-07-07",
-    sourceUrl: "https://tip.kocaeli.edu.tr/haberler/kousim-yonetim-kurulu-toplantisi-yapildi-fd3",
-    source: "news",
-    badge: "HABER",
-    summary: "KOÜSİM Yönetim Kurulu Toplantısı Yapıldı",
-    imageUrl: null,
-  },
-  {
-    id: "news-6",
-    title: "2026–2027 İntörn Uyum Programı Gerçekleştirildi",
-    publishedAt: "2026-07-01",
-    sourceUrl:
-      "https://tip.kocaeli.edu.tr/haberler/20262027-intorn-uyum-programi-gerceklestirildi-274",
-    source: "news",
-    badge: "HABER",
-    summary: "2026–2027 İntörn Uyum Programı Gerçekleştirildi",
-    imageUrl: null,
-  },
-];
+const LOCAL_FALLBACK = buildFeaturedPool(6);
 
-const LOCAL_IMAGES: Record<string, number> = {
+const NEWS_IMAGES: Record<string, number> = {
   "news-1": require("../../assets/campus/featured/featured-1.jpg"),
   "news-2": require("../../assets/campus/featured/featured-2.jpg"),
   "news-3": require("../../assets/campus/featured/featured-3.png"),
@@ -129,10 +59,26 @@ const LOCAL_IMAGES: Record<string, number> = {
   "news-6": require("../../assets/campus/featured/featured-6.jpg"),
 };
 
+const CTA_BY_SOURCE: Record<FeaturedSource, string> = {
+  news: "Haberi aç",
+  event: "Etkinliği aç",
+  announcement: "Duyuruyu aç",
+  editorial: "Detayı aç",
+  fallback: "İncele",
+};
+
 function formatDate(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return `${String(d.getDate()).padStart(2, "0")} ${MONTHS[d.getMonth()]} · ${d.getFullYear()}`;
+}
+
+function resolveCardImage(item: FeaturedItem) {
+  const portal = resolvePortalImage(item.id, item.imageUrl);
+  if (portal) return portal;
+  if (NEWS_IMAGES[item.id]) return NEWS_IMAGES[item.id];
+  if (item.imageUrl?.startsWith("http")) return { uri: item.imageUrl };
+  return NEWS_IMAGES["news-1"];
 }
 
 type CardProps = {
@@ -143,14 +89,9 @@ type CardProps = {
 };
 
 function PosterCard({ item, index, scrollX, isLast }: CardProps) {
-  const local = LOCAL_IMAGES[item.id];
-  const source = item.imageUrl
-    ? { uri: item.imageUrl }
-    : local
-      ? local
-      : LOCAL_IMAGES["news-1"];
+  const source = resolveCardImage(item);
+  const cta = CTA_BY_SOURCE[item.source] ?? "İncele";
 
-  // 1. kart sola yaslı focus(0)=0; sonrakiler ortalı
   const inputRange = [
     focusOffset(index - 1),
     focusOffset(index),
@@ -207,16 +148,20 @@ function PosterCard({ item, index, scrollX, isLast }: CardProps) {
         />
 
         <Animated.View style={[styles.cardContent, { opacity: contentOpacity }]}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{item.badge}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.badge}</Text>
+            </View>
+            <View style={styles.datePill}>
+              <Text style={styles.date}>{formatDate(item.publishedAt)}</Text>
+            </View>
           </View>
-          <Text style={styles.date}>{formatDate(item.publishedAt)}</Text>
           <Text style={styles.title} numberOfLines={3}>
             {item.title}
           </Text>
 
           <View style={styles.cta}>
-            <Text style={styles.ctaText}>Haberi aç</Text>
+            <Text style={styles.ctaText}>{cta}</Text>
             <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.4} />
           </View>
         </Animated.View>
@@ -316,7 +261,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    marginBottom: 8,
   },
   badgeText: {
     fontSize: 10,
@@ -324,12 +268,26 @@ const styles = StyleSheet.create({
     color: landingColors.heroEmerald,
     letterSpacing: 0.8,
   },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 8,
+  },
+  datePill: {
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
   date: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.78)",
-    marginBottom: 6,
-    letterSpacing: 0.3,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.95)",
+    letterSpacing: 0.4,
   },
   title: {
     fontSize: 18,

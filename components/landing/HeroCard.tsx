@@ -49,8 +49,10 @@ type Props = {
 export function HeroCard({ onSwipeComplete: _unused }: Props) {
   const pingScale = useRef(new Animated.Value(1)).current;
   const pingOpacity = useRef(new Animated.Value(0.8)).current;
+  const beamSpin = useRef(new Animated.Value(0)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const [flipped, setFlipped] = useState(false);
+  const [ctaSize, setCtaSize] = useState({ w: HERO_W - 36, h: 56 });
   const flipping = useRef(false);
 
   useEffect(() => {
@@ -69,6 +71,31 @@ export function HeroCard({ onSwipeComplete: _unused }: Props) {
     pulse.start();
     return () => pulse.stop();
   }, [pingOpacity, pingScale]);
+
+  /** CTA kenarında yavaş dönen ince ışık izi — kart çevrilince durur */
+  useEffect(() => {
+    if (flipped) {
+      beamSpin.stopAnimation();
+      return;
+    }
+    beamSpin.setValue(0);
+    const spin = Animated.loop(
+      Animated.timing(beamSpin, {
+        toValue: 1,
+        duration: 4800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    spin.start();
+    return () => spin.stop();
+  }, [beamSpin, flipped]);
+
+  const beamRotate = beamSpin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+  const beamSize = Math.ceil(Math.hypot(ctaSize.w, ctaSize.h)) + 24;
 
   const flipTo = (toBack: boolean) => {
     if (flipping.current) return;
@@ -208,22 +235,63 @@ export function HeroCard({ onSwipeComplete: _unused }: Props) {
 
             <Pressable
               onPress={() => flipTo(true)}
-              style={({ pressed }) => [styles.flipCta, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+              onLayout={(e) => {
+                const { width, height } = e.nativeEvent.layout;
+                setCtaSize({ w: width, h: height });
+              }}
+              style={({ pressed }) => [
+                styles.flipCta,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+              ]}
             >
-              <View style={styles.flipKnob}>
-                <RNImage
-                  source={require("../../assets/kou-tip-logo.png")}
-                  style={styles.flipKnobLogo}
-                  resizeMode="contain"
-                />
+              <View style={styles.flipCtaBeamClip} pointerEvents="none">
+                <Animated.View
+                  style={[
+                    styles.flipCtaBeam,
+                    {
+                      width: beamSize,
+                      height: beamSize,
+                      marginLeft: -beamSize / 2,
+                      marginTop: -beamSize / 2,
+                      transform: [{ rotate: beamRotate }],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[
+                      "transparent",
+                      "transparent",
+                      "rgba(255,255,255,0.05)",
+                      "rgba(255,255,255,0.55)",
+                      "rgba(16,185,129,0.65)",
+                      "rgba(255,255,255,0.12)",
+                      "transparent",
+                      "transparent",
+                    ]}
+                    locations={[0, 0.38, 0.46, 0.5, 0.54, 0.58, 0.66, 1]}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                </Animated.View>
               </View>
-              <View style={styles.flipCtaText}>
-                <Text style={styles.flipCtaTitle}>Giriş yapmak için dokun</Text>
-                <Text style={styles.flipCtaSub}>Tıp Fakültesi · dijital kimlik</Text>
-              </View>
-              <View style={styles.flipHint} pointerEvents="none">
-                <RotateCw size={14} color="rgba(255,255,255,0.75)" strokeWidth={2.4} />
-                <Text style={styles.flipHintChevrons}>› ›</Text>
+
+              <View style={styles.flipCtaInner}>
+                <View style={styles.flipKnob}>
+                  <RNImage
+                    source={require("../../assets/kou-tip-logo.png")}
+                    style={styles.flipKnobLogo}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.flipCtaText}>
+                  <Text style={styles.flipCtaTitle}>Giriş yapmak için dokun</Text>
+                  <Text style={styles.flipCtaSub}>Tıp Fakültesi · dijital kimlik</Text>
+                </View>
+                <View style={styles.flipHint} pointerEvents="none">
+                  <RotateCw size={14} color="rgba(255,255,255,0.75)" strokeWidth={2.4} />
+                  <Text style={styles.flipHintChevrons}>› ›</Text>
+                </View>
               </View>
             </Pressable>
           </View>
@@ -399,13 +467,28 @@ const styles = StyleSheet.create({
   },
 
   flipCta: {
+    borderRadius: 999,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.16)",
+  },
+  flipCtaBeamClip: {
+    ...StyleSheet.absoluteFill,
+    overflow: "hidden",
+    borderRadius: 999,
+  },
+  flipCtaBeam: {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+  },
+  flipCtaInner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(0,0,0,0.28)",
+    margin: 1.5,
+    backgroundColor: "rgba(0,0,0,0.42)",
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.2)",
     paddingVertical: 7,
     paddingLeft: 7,
     paddingRight: 14,
@@ -414,7 +497,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(16,185,129,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(16,185,129,0.32)",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
