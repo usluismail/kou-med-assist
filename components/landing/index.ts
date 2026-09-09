@@ -3,6 +3,7 @@
  */
 export { HeroCard } from "./HeroCard";
 export { SwipeToLogin } from "./SwipeToLogin";
+export { DigitalIdLoginCard } from "./DigitalIdLoginCard";
 export { ExploreGrid } from "./ExploreGrid";
 export { FeaturedScroll } from "./FeaturedScroll";
 export { AnnouncementPreview } from "./AnnouncementPreview";
