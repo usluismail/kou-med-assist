@@ -142,6 +142,7 @@ export default function DuyurularScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
         contentContainerStyle={styles.filters}
       >
         {FILTERS.map((f) => {
@@ -161,6 +162,7 @@ export default function DuyurularScreen() {
       </ScrollView>
 
       <ScrollView
+        style={styles.listScroll}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
       >
@@ -229,15 +231,24 @@ const styles = StyleSheet.create({
     color: landingColors.text,
     padding: 0,
   },
+  // Horizontal ScrollView flex ile şişmesin (yoksa chip’ler dikey uzar)
+  filtersScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    maxHeight: 44,
+    marginBottom: 12,
+  },
   filters: {
     paddingHorizontal: 16,
     gap: 8,
-    paddingBottom: 12,
+    alignItems: "center",
   },
   chip: {
+    height: 36,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: landingColors.white,
     borderWidth: 1,
     borderColor: landingColors.glassBorder,
@@ -249,10 +260,14 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 12,
     fontWeight: "700",
+    lineHeight: 16,
     color: landingColors.textSub,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   chipTextActive: { color: landingColors.white },
-  list: { paddingHorizontal: 16, gap: 10 },
+  listScroll: { flex: 1 },
+  list: { flexGrow: 1, paddingHorizontal: 16, gap: 10 },
   card: {
     flexDirection: "row",
     alignItems: "center",

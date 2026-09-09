@@ -1,18 +1,19 @@
 /**
- * app/yemekhane.tsx — Günlük menü (yaklaşım 2).
- * Üstte 5 kutulu gün seçici + altta tek menü listesi (sabah/akşam yok).
+ * app/yemekhane.tsx — Klinik tray + görsel 1+2 karışımı.
+ * Chart bandı (zümrüt→klinik mavi) + tepsi bölmeli kurs hücreleri.
+ * Prototip: dairesel gün / lime kapsül / koyu kcal ring yok.
  */
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Flame, UtensilsCrossed } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Leaf, MapPin, Stethoscope, UtensilsCrossed } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PortalSubHeader } from "@/components/landing/PortalSubHeader";
 import { fetchCafeteriaWeek } from "@/lib/api";
@@ -26,18 +27,90 @@ const MONTH_LONG = [
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
 ];
 
-const SCREEN_W = Dimensions.get("window").width;
-const DAY_GAP = 8;
-const DAY_PAD = 16;
-/** Tam 5 kutu — ekranı eşit böler */
-const DAY_BOX_W = Math.floor((SCREEN_W - DAY_PAD * 2 - DAY_GAP * 4) / 5);
+const PAD = 16;
 
-/** Tek günlük menü = öğle kalemleri (sabah/akşam ayrımı yok) */
+type CourseRole = "corba" | "ana" | "garnitur" | "yan" | "tatli";
+
+const COURSE_META: Record<
+  CourseRole,
+  { label: string; bg: string; fg: string; bar: string }
+> = {
+  corba: {
+    label: "Çorba",
+    bg: landingColors.tileSky,
+    fg: landingColors.tileSkyFg,
+    bar: "#3B82B8",
+  },
+  ana: {
+    label: "Ana",
+    bg: landingColors.tileEmerald,
+    fg: landingColors.tileEmeraldFg,
+    bar: landingColors.primary,
+  },
+  garnitur: {
+    label: "Garnitür",
+    bg: landingColors.tileMint,
+    fg: landingColors.tileMintFg,
+    bar: "#2A9B6E",
+  },
+  yan: {
+    label: "Yan",
+    bg: landingColors.tileAmber,
+    fg: landingColors.tileAmberFg,
+    bar: "#C4782A",
+  },
+  tatli: {
+    label: "Tatlı·İçecek",
+    bg: landingColors.tileViolet,
+    fg: landingColors.tileVioletFg,
+    bar: "#6B4FA0",
+  },
+};
+
+const SOUP_KEYS = ["çorba", "corba"];
+const MAIN_KEYS = [
+  "tavuk", "et ", "köfte", "kofte", "fasulye", "şinitzel", "sinitzel",
+  "sote", "ızgara", "izgara", "fırın", "firin", "balık", "balik", "kebap",
+];
+const SIDE_KEYS = ["pilav", "makarna", "bulgur", "patates", "pirinç", "pirinc"];
+const YAN_KEYS = ["cacık", "cacik", "salata", "turşu", "tursu", "yoğurt", "yogurt"];
+const DESSERT_KEYS = [
+  "meyve", "ayran", "sütlaç", "sutlac", "komposto", "tatlı", "tatli",
+  "puding", "kek", "su ",
+];
+
+function normalize(name: string) {
+  return name.toLocaleLowerCase("tr-TR");
+}
+
+function matchAny(name: string, keys: string[]) {
+  const n = normalize(name);
+  return keys.some((k) => n.includes(k.trim()));
+}
+
+function courseRole(name: string, index: number, total: number): CourseRole {
+  if (matchAny(name, SOUP_KEYS)) return "corba";
+  if (matchAny(name, DESSERT_KEYS)) return "tatli";
+  if (matchAny(name, YAN_KEYS)) return "yan";
+  if (matchAny(name, SIDE_KEYS)) return "garnitur";
+  if (matchAny(name, MAIN_KEYS)) return "ana";
+
+  if (index === 0) return "corba";
+  if (index === 1) return "ana";
+  if (index === total - 1) return "tatli";
+  if (index === total - 2) return "yan";
+  return "garnitur";
+}
+
+function estimateProteinG(totalCal: number) {
+  if (!totalCal) return 0;
+  return Math.round((totalCal * 0.15) / 4);
+}
+
 function dayMenuItems(menu: CafeteriaMenu | undefined): MenuItem[] {
   return menu?.meals?.lunch ?? [];
 }
 
-/** Bugünden başlayarak en fazla 5 gün (veya listedeki 5) */
 function pickFiveDays(menus: CafeteriaMenu[], todayIso: string): CafeteriaMenu[] {
   if (!menus.length) return [];
   const sorted = [...menus].sort((a, b) => a.date.localeCompare(b.date));
@@ -150,44 +223,62 @@ export default function YemekhaneScreen() {
 
   const items = dayMenuItems(selected);
   const totalCal = items.reduce((acc, i) => acc + (i.calories || 0), 0);
+  const proteinEst = estimateProteinG(totalCal);
 
   const dateObj = selected ? parseIso(selected.date) : new Date();
   const monthTitle = `${MONTH_LONG[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
   const weekdayLong = dateObj.toLocaleDateString("tr-TR", { weekday: "long" });
   const headline = weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1);
+  const isToday = selected?.date === todayIso;
 
   return (
     <View style={styles.root}>
-      <PortalSubHeader kicker="YEMEKHANE" title="Günün menüsü" />
+      <PortalSubHeader kicker="UMUTTEPE YEMEKHANE" title="Bugünkü menü" />
+
+      {/* 1 — Klinik chart bandı */}
+      <LinearGradient
+        colors={["#0C5C3D", "#1A7A52", "#1B5F8A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.chartBand}
+      >
+        <View style={styles.bandInner}>
+          <MapPin size={14} color="rgba(255,255,255,0.92)" strokeWidth={2.4} />
+          <Text style={styles.bandText}>Umuttepe · öğrenci yemekhanesi</Text>
+        </View>
+        <View style={styles.bandTicks}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={styles.bandTick} />
+          ))}
+        </View>
+      </LinearGradient>
 
       <ScrollView
         contentContainerStyle={[styles.page, { paddingBottom: insets.bottom + 28 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ay + 5 kutulu gün seçici */}
-        <View style={styles.calendarBlock}>
+        {/* Tarih şeridi */}
+        <View style={styles.railBlock}>
           <Text style={styles.monthTitle}>{monthTitle}</Text>
-
-          <View style={styles.daysRow}>
+          <View style={styles.rail}>
             {menus.map((m) => {
               const d = parseIso(m.date);
               const active = m.date === selected?.date;
+              const isRailToday = m.date === todayIso;
               return (
                 <Pressable
                   key={m.date}
                   onPress={() => setSelectedDate(m.date)}
-                  style={[styles.dayBox, active && styles.dayBoxActive]}
+                  style={[styles.railItem, active && styles.railItemActive]}
                 >
-                  <View style={[styles.dayTop, active && styles.dayTopActive]}>
-                    <Text style={[styles.dayWeek, active && styles.dayWeekActive]}>
-                      {DAY_SHORT[d.getDay()]}
-                    </Text>
-                  </View>
-                  <View style={styles.dayBottom}>
-                    <Text style={[styles.dayNum, active && styles.dayNumActive]}>
-                      {d.getDate()}
-                    </Text>
-                  </View>
+                  <Text style={[styles.railWeek, active && styles.railWeekActive]}>
+                    {DAY_SHORT[d.getDay()]}
+                  </Text>
+                  <Text style={[styles.railNum, active && styles.railNumActive]}>
+                    {d.getDate()}
+                  </Text>
+                  {active ? <View style={styles.railUnderline} /> : null}
+                  {!active && isRailToday ? <View style={styles.railTodayDot} /> : null}
                 </Pressable>
               );
             })}
@@ -195,82 +286,129 @@ export default function YemekhaneScreen() {
         </View>
 
         {loading && !data ? (
-          <ActivityIndicator color={landingColors.primary} style={{ marginTop: 12 }} />
+          <ActivityIndicator color={landingColors.primary} style={{ marginTop: 8 }} />
         ) : null}
 
-        {/* Özet kart — tek menü, sabah/akşam yok */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryTop}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.summaryKicker}>Seçili gün</Text>
-              <Text style={styles.summaryTitle}>{headline}</Text>
-              <Text style={styles.summaryDate}>
-                {dateObj.getDate()} {MONTH_LONG[dateObj.getMonth()]}
-              </Text>
-            </View>
-            <View style={styles.kcalRing}>
-              <Flame size={16} color={landingColors.ctaLime} strokeWidth={2.4} />
-              <Text style={styles.kcalValue}>{totalCal || "—"}</Text>
-              <Text style={styles.kcalUnit}>kcal</Text>
-            </View>
-          </View>
+        {/* 2 — Tepsi silueti özet kartı */}
+        <View style={styles.trayShell}>
+          <View style={styles.trayRim} />
+          <View style={styles.trayCard}>
+            <View style={styles.trayAccent} />
+            <View style={styles.trayBody}>
+              <View style={styles.trayTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.trayKicker}>
+                    {isToday ? "Bugünün menüsü" : "Seçili gün"}
+                  </Text>
+                  <Text style={styles.trayTitle}>{headline}</Text>
+                  <Text style={styles.trayDate}>
+                    {dateObj.getDate()} {MONTH_LONG[dateObj.getMonth()]} · öğle servisi
+                  </Text>
+                </View>
+                <View style={styles.trayIconWrap}>
+                  <UtensilsCrossed size={22} color={landingColors.primary} strokeWidth={2} />
+                </View>
+              </View>
 
-          <View style={styles.statRow}>
-            <View style={styles.stat}>
-              <UtensilsCrossed size={16} color={landingColors.ctaLime} strokeWidth={2.2} />
-              <Text style={styles.statValue}>{items.length}</Text>
-              <Text style={styles.statLabel}>kalem</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={[styles.stat, { flex: 1.4 }]}>
-              <Text style={styles.statLabelLeft}>Menü özeti</Text>
-              <Text style={styles.statHint} numberOfLines={2}>
-                {items.length
-                  ? items.map((i) => i.name).join(" · ")
-                  : "Bu güne ait menü henüz yok"}
-              </Text>
+              <View style={styles.chipRow}>
+                <View style={styles.chip}>
+                  <View style={[styles.chipDot, { backgroundColor: landingColors.primary }]} />
+                  <Text style={styles.chipValue}>{totalCal || "—"}</Text>
+                  <Text style={styles.chipLabel}>kcal</Text>
+                </View>
+                <View style={[styles.chip, styles.chipProtein]}>
+                  <Leaf size={12} color={landingColors.primary} strokeWidth={2.4} />
+                  <Text style={styles.chipValue}>~{proteinEst || "—"} g</Text>
+                  <Text style={styles.chipLabel}>protein*</Text>
+                </View>
+                <View style={styles.chip}>
+                  <View style={[styles.chipDot, { backgroundColor: "#1B5F8A" }]} />
+                  <Text style={styles.chipValue}>{items.length}</Text>
+                  <Text style={styles.chipLabel}>kalem</Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
 
         <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>Menü</Text>
+          <Text style={styles.sectionTitle}>Menü sırası</Text>
           <Text style={styles.sectionSub}>
-            {items.length ? `${items.length} ürün · tek liste` : "Yayın bekleniyor"}
+            {items.length
+              ? "Servis sırası · çorba → ana → garnitür → yan → tatlı"
+              : "Menü yayınlanınca burada görünür"}
           </Text>
         </View>
 
         {items.length ? (
-          <View style={styles.menuCard}>
-            {items.map((item, idx) => (
-              <View key={`${item.name}-${idx}`}>
-                {idx > 0 ? <View style={styles.divider} /> : null}
-                <View style={styles.menuRow}>
-                  <View style={styles.itemBullet}>
-                    <Text style={styles.itemIndex}>{idx + 1}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    {item.allergens?.length ? (
-                      <Text style={styles.allergen}>
-                        Alerjen: {item.allergens.join(", ")}
-                      </Text>
+          <View style={styles.compartmentTray}>
+            <View style={styles.trayHandle} />
+            {items.map((item, idx) => {
+              const role = courseRole(item.name, idx, items.length);
+              const meta = COURSE_META[role];
+              const isLast = idx === items.length - 1;
+              return (
+                <View key={`${item.name}-${idx}`} style={styles.compartmentWrap}>
+                  {/* Timeline */}
+                  <View style={styles.timelineCol}>
+                    <View style={[styles.timelineDot, { backgroundColor: meta.bar }]} />
+                    {!isLast ? (
+                      <View style={[styles.timelineLine, { backgroundColor: `${meta.bar}33` }]} />
                     ) : null}
                   </View>
-                  <Text style={styles.cal}>{item.calories} kcal</Text>
+
+                  {/* Bölme hücresi */}
+                  <View style={styles.compartment}>
+                    <View style={[styles.compartmentBar, { backgroundColor: meta.bar }]} />
+                    <View style={styles.compartmentInner}>
+                      <View style={[styles.rolePill, { backgroundColor: meta.bg }]}>
+                        <Text style={[styles.roleText, { color: meta.fg }]} numberOfLines={1}>
+                          {meta.label}
+                        </Text>
+                      </View>
+                      <View style={styles.courseBody}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        {item.allergens?.length ? (
+                          <View style={styles.allergenRow}>
+                            {item.allergens.map((a) => (
+                              <View key={a} style={styles.allergenChip}>
+                                <Text style={styles.allergenText}>{a}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={styles.cal}>{item.calories}</Text>
+                      <Text style={styles.calUnit}>kcal</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <View style={styles.emptyCard}>
             <UtensilsCrossed size={28} color={landingColors.primary} strokeWidth={1.8} />
             <Text style={styles.emptyTitle}>Bu güne ait menü yok</Text>
             <Text style={styles.emptySub}>
-              Menü yayınlandığında burada otomatik güncellenir.
+              Menü yayınlandığında yemekler burada listelenir.
             </Text>
           </View>
         )}
+
+        <View style={styles.tipCard}>
+          <View style={styles.tipIcon}>
+            <Stethoscope size={16} color={landingColors.primary} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tipTitle}>Klinik gün notu</Text>
+            <Text style={styles.tipBody}>
+              Uzun poliklinik veya nöbet öncesi öğünde protein + kompleks karbonhidrat
+              dengesi enerjiyi daha dengeli taşır. *Protein değeri kabaca tahmindir;
+              tıbbi öneri değildir.
+            </Text>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -278,165 +416,207 @@ export default function YemekhaneScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: landingColors.bg },
-  page: {
-    paddingHorizontal: DAY_PAD,
-    gap: 14,
-    paddingTop: 4,
+
+  chartBand: {
+    marginHorizontal: PAD,
+    marginBottom: 4,
+    borderRadius: 14,
+    overflow: "hidden",
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  bandInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  bandText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.96)",
+    letterSpacing: 0.2,
+    textAlign: "center",
+  },
+  bandTicks: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingBottom: 8,
+    opacity: 0.35,
+  },
+  bandTick: {
+    width: 1,
+    height: 6,
+    backgroundColor: "#fff",
+    borderRadius: 1,
   },
 
-  calendarBlock: {
-    gap: 12,
+  page: {
+    paddingHorizontal: PAD,
+    gap: 14,
+    paddingTop: 12,
   },
+
+  railBlock: { gap: 10 },
   monthTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
     color: landingColors.text,
     letterSpacing: -0.2,
   },
-  daysRow: {
+  rail: {
     flexDirection: "row",
-    gap: DAY_GAP,
-  },
-  dayBox: {
-    width: DAY_BOX_W,
-    borderRadius: 18,
+    justifyContent: "space-between",
     backgroundColor: landingColors.white,
-    borderWidth: 1.5,
-    borderColor: "rgba(12,92,61,0.28)",
-    overflow: "hidden",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: landingColors.glassBorder,
+    paddingHorizontal: 6,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
-  dayBoxActive: {
-    borderColor: landingColors.primary,
-  },
-  dayTop: {
-    paddingVertical: 8,
+  railItem: {
+    flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 4,
+    minHeight: 52,
   },
-  dayTopActive: {
-    backgroundColor: landingColors.ctaLime,
-    margin: 4,
-    marginBottom: 0,
-    borderRadius: 12,
-    paddingVertical: 7,
+  railItemActive: {
+    backgroundColor: landingColors.primaryGlow,
   },
-  dayBottom: {
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayWeek: {
-    fontSize: 11,
+  railWeek: {
+    fontSize: 10,
     fontWeight: "700",
     color: landingColors.textMuted,
-    letterSpacing: 0.6,
+    letterSpacing: 0.7,
   },
-  dayWeekActive: {
-    color: landingColors.heroEmerald,
-  },
-  dayNum: {
-    fontSize: 18,
+  railWeekActive: { color: landingColors.primary },
+  railNum: {
+    fontSize: 17,
     fontWeight: "800",
     color: landingColors.text,
   },
-  dayNumActive: {
-    color: landingColors.text,
+  railNumActive: { color: landingColors.primaryDark },
+  railUnderline: {
+    marginTop: 2,
+    width: 16,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: landingColors.primary,
+  },
+  railTodayDot: {
+    marginTop: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: landingColors.accent,
   },
 
-  summaryCard: {
-    backgroundColor: landingColors.primaryDark,
-    borderRadius: 24,
-    padding: 18,
-    gap: 16,
+  trayShell: {
+    gap: 0,
   },
-  summaryTop: {
+  trayRim: {
+    alignSelf: "center",
+    width: 56,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(12,46,34,0.12)",
+    marginBottom: -2,
+    zIndex: 2,
+  },
+  trayCard: {
+    flexDirection: "row",
+    backgroundColor: landingColors.white,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: landingColors.glassBorder,
+    overflow: "hidden",
+    shadowColor: "#0C2E22",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  trayAccent: {
+    width: 5,
+    backgroundColor: landingColors.primary,
+  },
+  trayBody: {
+    flex: 1,
+    padding: 16,
+    gap: 14,
+  },
+  trayTop: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  summaryKicker: {
+  trayKicker: {
     fontSize: 11,
     fontWeight: "700",
-    color: "rgba(184,212,74,0.9)",
-    letterSpacing: 0.6,
+    color: landingColors.primary,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
     marginBottom: 4,
   },
-  summaryTitle: {
-    fontSize: 24,
+  trayTitle: {
+    fontSize: 22,
     fontWeight: "800",
-    color: landingColors.white,
-    letterSpacing: -0.5,
+    color: landingColors.text,
+    letterSpacing: -0.4,
   },
-  summaryDate: {
+  trayDate: {
     fontSize: 13,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.72)",
+    color: landingColors.textSub,
     marginTop: 2,
   },
-  kcalRing: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 3,
-    borderColor: "rgba(184,212,74,0.55)",
-    backgroundColor: "rgba(255,255,255,0.06)",
+  trayIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: landingColors.tileEmerald,
     alignItems: "center",
     justifyContent: "center",
   },
-  kcalValue: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: landingColors.white,
-    marginTop: 2,
-  },
-  kcalUnit: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.65)",
-  },
-  statRow: {
+  chipRow: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 12,
+    gap: 8,
   },
-  stat: {
+  chip: {
+    flex: 1,
+    backgroundColor: landingColors.bgCardAlt,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     alignItems: "center",
     gap: 2,
-    minWidth: 56,
   },
-  statDivider: {
-    width: 1,
-    alignSelf: "stretch",
-    backgroundColor: "rgba(255,255,255,0.12)",
+  chipProtein: {
+    backgroundColor: landingColors.tileMint,
   },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: landingColors.white,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.65)",
-  },
-  statLabelLeft: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: landingColors.ctaLime,
-    alignSelf: "flex-start",
+  chipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginBottom: 2,
   },
-  statHint: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.82)",
-    lineHeight: 16,
-    alignSelf: "stretch",
+  chipValue: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: landingColors.text,
+    fontVariant: ["tabular-nums"],
+  },
+  chipLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: landingColors.textMuted,
   },
 
   sectionHead: { gap: 2, marginTop: 2 },
@@ -450,53 +630,155 @@ const styles = StyleSheet.create({
     color: landingColors.textMuted,
     fontWeight: "500",
   },
-  menuCard: {
+
+  compartmentTray: {
     backgroundColor: landingColors.white,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: landingColors.glassBorder,
-    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(12,46,34,0.12)",
+    paddingTop: 10,
+    paddingBottom: 6,
+    paddingHorizontal: 10,
+    gap: 0,
+    shadowColor: "#0C2E22",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  menuRow: {
+  trayHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(12,46,34,0.10)",
+    marginBottom: 8,
+  },
+  compartmentWrap: {
+    flexDirection: "row",
+    gap: 8,
+    minHeight: 64,
+  },
+  timelineCol: {
+    width: 14,
+    alignItems: "center",
+    paddingTop: 22,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: landingColors.white,
+  },
+  timelineLine: {
+    flex: 1,
+    width: 2,
+    marginTop: 2,
+    borderRadius: 1,
+    minHeight: 20,
+  },
+  compartment: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: landingColors.bgCardAlt,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 8,
+    minHeight: 58,
+  },
+  compartmentBar: {
+    width: 4,
+  },
+  compartmentInner: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    gap: 8,
   },
-  itemBullet: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: landingColors.tileMint,
+  rolePill: {
+    minWidth: 64,
+    maxWidth: 78,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    borderRadius: 7,
     alignItems: "center",
-    justifyContent: "center",
   },
-  itemIndex: {
-    fontSize: 12,
+  roleText: {
+    fontSize: 9,
     fontWeight: "800",
-    color: landingColors.tileMintFg,
+    letterSpacing: 0.15,
   },
-  divider: {
-    height: 1,
-    backgroundColor: landingColors.divider,
-    marginHorizontal: 14,
-  },
+  courseBody: { flex: 1, gap: 4 },
   itemName: {
     fontSize: 14,
     fontWeight: "700",
     color: landingColors.text,
+    letterSpacing: -0.15,
   },
-  allergen: {
-    fontSize: 11,
-    color: landingColors.textMuted,
-    marginTop: 2,
+  allergenRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+  },
+  allergenChip: {
+    backgroundColor: landingColors.accentGlow,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  allergenText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: landingColors.accent,
+    textTransform: "capitalize",
   },
   cal: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "800",
     color: landingColors.primary,
+    fontVariant: ["tabular-nums"],
   },
+  calUnit: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: landingColors.textMuted,
+    marginLeft: -4,
+  },
+
+  tipCard: {
+    flexDirection: "row",
+    gap: 12,
+    backgroundColor: landingColors.bgCardAlt,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: landingColors.glassBorder,
+    padding: 14,
+    marginTop: 2,
+  },
+  tipIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: landingColors.tileEmerald,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tipTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: landingColors.text,
+    marginBottom: 4,
+  },
+  tipBody: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: landingColors.textSub,
+    fontWeight: "500",
+  },
+
   emptyCard: {
     backgroundColor: landingColors.white,
     borderRadius: 20,

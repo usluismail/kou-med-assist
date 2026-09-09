@@ -1,8 +1,10 @@
 /**
- * HeroCard.tsx — Açık zemin üzerinde kompakt kurumsal hero.
+ * HeroCard.tsx — Tıp fakültesine özgü hero (klon kırıcı 4 müdahale).
  *
- * Selamlama + hava tek blok; soft soldan-alta gradient; tek satır tıp kimliği.
- * Referans: KOÜ Mobil (hava sağ üstte değil, selamlamanın altında).
+ * 1) Selamlama: “…, Meslektaşım”
+ * 2) Hava: sağ üst buzlu cam pill
+ * 3) Akademik rozet: 2026-2027 GÜZ BLOK 1
+ * 4) Sürgü rengi: tıbbi mint (#10B981) — SwipeToLogin
  */
 import { useEffect, useRef } from "react";
 import {
@@ -14,6 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Lock, Sun } from "lucide-react-native";
@@ -21,7 +24,6 @@ import { landingColors } from "@/lib/theme";
 import { SwipeToLogin } from "./SwipeToLogin";
 
 const { width: W } = Dimensions.get("window");
-/** KOÜ Mobil referansı: kompakt kart (~ekran genişliğinin %68'i yükseklik) */
 const HERO_H = Math.round(W * 0.68);
 
 const now = new Date();
@@ -30,8 +32,12 @@ const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
 ];
-const greeting =
-  now.getHours() < 12 ? "Günaydın." : now.getHours() < 18 ? "İyi günler." : "İyi akşamlar.";
+
+const greetingBase =
+  now.getHours() < 12 ? "Günaydın" : now.getHours() < 18 ? "İyi günler" : "İyi akşamlar";
+const greeting = `${greetingBase}, Meslektaşım`;
+
+const ACADEMIC_BADGE = "2026-2027 GÜZ BLOK 1";
 
 type Props = {
   onSwipeComplete: () => void;
@@ -92,10 +98,6 @@ export function HeroCard({ onSwipeComplete }: Props) {
           contentPosition={{ top: "18%", right: "8%" }}
         />
 
-        {/*
-          Split light: solda daha dolgun zümrüt;
-          sağ üst kampüs hâlâ nefes alsın.
-        */}
         <LinearGradient
           colors={[
             "rgba(4,44,32,0.98)",
@@ -120,6 +122,15 @@ export function HeroCard({ onSwipeComplete }: Props) {
           style={StyleSheet.absoluteFill}
         />
 
+        {/* 2 — Hava: sağ üst buzlu cam pill */}
+        <View style={styles.weatherPill} pointerEvents="none">
+          <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
+          <View style={styles.weatherPillInner}>
+            <Sun size={13} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={styles.weatherText}>24°</Text>
+          </View>
+        </View>
+
         <View style={styles.heroContent}>
           <View style={styles.liveRow}>
             <View style={styles.pingWrap}>
@@ -136,14 +147,13 @@ export function HeroCard({ onSwipeComplete }: Props) {
             </Text>
           </View>
 
-          {/* Selamlama + hava tek blok */}
-          <View style={styles.greetingBlock}>
-            <Text style={styles.headline}>{greeting}</Text>
-            <View style={styles.weatherRow}>
-              <Sun size={15} color={landingColors.ctaLime} strokeWidth={2.5} />
-              <Text style={styles.weatherText}>24°</Text>
-            </View>
+          {/* 3 — Akademik rozet */}
+          <View style={styles.academicBadge}>
+            <Text style={styles.academicBadgeText}>{ACADEMIC_BADGE}</Text>
           </View>
+
+          {/* 1 — Tıp kültürü selamlama */}
+          <Text style={styles.headline}>{greeting}</Text>
 
           <Text style={styles.identity}>1994 · Umuttepe Araştırma Hastanesi</Text>
 
@@ -217,6 +227,31 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: "hidden",
   },
+  weatherPill: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    zIndex: 4,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.22)",
+  },
+  weatherPillInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  weatherText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
+  },
+
   heroContent: {
     flex: 1,
     justifyContent: "flex-end",
@@ -235,14 +270,14 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: landingColors.ping,
+    backgroundColor: "#10B981",
     position: "absolute",
   },
   pingRipple: {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: landingColors.ping,
+    backgroundColor: "#10B981",
     position: "absolute",
   },
   liveText: {
@@ -252,27 +287,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  greetingBlock: {
-    marginBottom: 8,
+  academicBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(16,185,129,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(16,185,129,0.45)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 10,
   },
+  academicBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#D1FAE5",
+    letterSpacing: 1.1,
+  },
+
   headline: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "900",
     color: "#FFFFFF",
-    lineHeight: 38,
-    letterSpacing: -1.2,
-  },
-  weatherRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 6,
-  },
-  weatherText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.2,
+    lineHeight: 34,
+    letterSpacing: -1.0,
+    marginBottom: 8,
   },
 
   identity: {

@@ -15,6 +15,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight } from "lucide-react-native";
 import { landingColors } from "@/lib/theme";
 
+/** Tıbbi mint — KOÜ Mobil fıstık yeşili yerine */
+const CLINICAL_MINT = "#10B981";
+const CLINICAL_MINT_SOFT = "rgba(16,185,129,0.22)";
+
 /** Knob + üst/alt boşluk net kalsın: (56 - 42) / 2 = 7px */
 const PILL_H = 56;
 const KNOB = 42;
@@ -96,11 +100,11 @@ function BorderBeam({ width }: { width: number }) {
           colors={[
             "transparent",
             "transparent",
-            "rgba(184,212,74,0)",
-            "rgba(200,230,120,0.5)",
+            "rgba(16,185,129,0)",
+            "rgba(52,211,153,0.45)",
             "rgba(255,255,255,0.7)",
-            "rgba(200,230,120,0.5)",
-            "rgba(184,212,74,0)",
+            "rgba(52,211,153,0.45)",
+            "rgba(16,185,129,0)",
             "transparent",
             "transparent",
           ]}
@@ -210,7 +214,7 @@ export function SwipeToLogin({ onSwipeComplete }: Props) {
               style={[styles.knob, { transform: [{ translateX: dragX }] }]}
               {...panResponder.panHandlers}
             >
-              <ArrowRight size={18} color={landingColors.heroEmerald} strokeWidth={2.5} />
+              <ArrowRight size={18} color="#064E3B" strokeWidth={2.5} />
             </Animated.View>
           </View>
 
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "rgba(184,212,74,0.2)",
+    backgroundColor: CLINICAL_MINT_SOFT,
     borderRadius: INNER_H / 2,
   },
   row: {
@@ -276,7 +280,7 @@ const styles = StyleSheet.create({
     width: KNOB,
     height: KNOB,
     borderRadius: KNOB / 2,
-    backgroundColor: landingColors.swipeKnob,
+    backgroundColor: CLINICAL_MINT,
     alignItems: "center",
     justifyContent: "center",
   },

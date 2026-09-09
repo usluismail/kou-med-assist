@@ -116,6 +116,7 @@ export default function HastaneScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
         contentContainerStyle={styles.filters}
       >
         {FILTERS.map((f) => {
@@ -134,6 +135,7 @@ export default function HastaneScreen() {
       </ScrollView>
 
       <ScrollView
+        style={styles.listScroll}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
       >
@@ -184,11 +186,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   searchInput: { flex: 1, fontSize: 14, color: landingColors.text, padding: 0 },
-  filters: { paddingHorizontal: 16, gap: 8, paddingBottom: 12 },
+  filtersScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    maxHeight: 44,
+    marginBottom: 12,
+  },
+  filters: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: "center",
+  },
   chip: {
+    height: 36,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: landingColors.white,
     borderWidth: 1,
     borderColor: landingColors.glassBorder,
@@ -197,9 +211,17 @@ const styles = StyleSheet.create({
     backgroundColor: landingColors.primaryDark,
     borderColor: landingColors.primaryDark,
   },
-  chipText: { fontSize: 12, fontWeight: "700", color: landingColors.textSub },
+  chipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16,
+    color: landingColors.textSub,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
   chipTextActive: { color: landingColors.white },
-  list: { paddingHorizontal: 16, gap: 10 },
+  listScroll: { flex: 1 },
+  list: { flexGrow: 1, paddingHorizontal: 16, gap: 10 },
   card: {
     backgroundColor: landingColors.white,
     borderRadius: 18,
