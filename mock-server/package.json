@@ -1,0 +1,15 @@
+{
+  "name": "kou-med-mock-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KOÜ Tıp mobil uygulaması için sahte REST API (Sprint A)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

@@ -6,7 +6,13 @@ Kocaeli Üniversitesi Tıp Fakültesi mobil uygulaması — **React Native / Exp
 
 ```bash
 npm install --legacy-peer-deps
-npx expo start --ios
+npx expo start --lan
+```
+
+Sahte API (ayrı terminal):
+
+```bash
+npm run mock
 ```
 
 veya Android:
@@ -25,5 +31,7 @@ npx expo start --android
 
 - `app/` — Expo Router ekranları
 - `components/` — LoginSheet + med panelleri
-- `lib/` — tema token’ları + med-data
+- `lib/` — tema token’ları + med-data (API’ye taşınacak)
+- `mock-server/` — sahte REST API (Node/Express) — `npm run mock`
 - `assets/` — ikonlar ve yerleşke görselleri
+- `YOL-HARITASI.md` — sprint planı

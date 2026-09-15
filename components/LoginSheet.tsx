@@ -22,9 +22,25 @@ import {
   UserRound,
   X,
 } from "lucide-react-native";
-import { colors } from "@/lib/theme";
+import { colors, landingColors } from "@/lib/theme";
+import { useAuth } from "@/lib/api/AuthContext";
+import { ROLE_HOME_HREF } from "@/lib/nav";
 
 type Role = "student" | "faculty";
+
+type DemoAccount = { label: string; email: string; pass: string };
+
+/** OCP — Yeni demo hesap eklemek için yalnızca bu sabit güncellenir */
+const DEMO_ACCOUNTS: Record<Role, DemoAccount[]> = {
+  student: [
+    { label: "Dönem 1-3 Demo (Pre-Klinik)", email: "can.yilmaz@kocaeli.edu.tr", pass: "ogrenci123" },
+    { label: "Dönem 4-5 Demo (Klinik)", email: "elif.demir@kocaeli.edu.tr", pass: "ogrenci123" },
+    { label: "Dönem 6 Demo (İntörn)", email: "ahmet.yilmaz@kocaeli.edu.tr", pass: "ogrenci123" },
+  ],
+  faculty: [
+    { label: "Demo Hesabı Doldur (Hoca)", email: "ayse.kaya@kocaeli.edu.tr", pass: "hoca123" },
+  ],
+};
 
 const roles = [
   {
@@ -41,7 +57,7 @@ const roles = [
     tone: colors.clinical,
     kicker: "Öğretim Üyesi / Akademisyen Girişi",
     title: "Akademisyen Portalı",
-    subtitle: "Karne Onayları, QR Değerlendirme, Sesli Not ve Rubrikler",
+    subtitle: null as string | null,
   },
 ];
 
@@ -80,7 +96,9 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.roleKicker}>{r.kicker}</Text>
                       <Text style={styles.roleTitle}>{r.title}</Text>
-                      <Text style={styles.roleSub}>{r.subtitle}</Text>
+                      {r.subtitle ? (
+                        <Text style={styles.roleSub}>{r.subtitle}</Text>
+                      ) : null}
                     </View>
                     <ChevronRight size={20} color={colors.mutedForeground} />
                   </Pressable>
@@ -88,7 +106,11 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
               </View>
             </>
           ) : (
-            <LoginForm role={role} onBack={() => setRole(null)} />
+            <LoginForm
+              role={role}
+              onBack={() => setRole(null)}
+              onClose={onClose}
+            />
           )}
           <Text style={styles.footer}>
             Kocaeli Üniversitesi Bilgi İşlem Daire Başkanlığı © 2026
@@ -99,22 +121,49 @@ export function LoginSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
+function LoginForm({
+  role,
+  onBack,
+  onClose,
+}: {
+  role: Role;
+  onBack: () => void;
+  onClose: () => void;
+}) {
   const student = role === "student";
   const router = useRouter();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const valid = identifier.trim().length > 2 && password.length >= 4;
 
-  const submit = () => {
+  const fillDemo = (email: string, pass: string) => {
+    setIdentifier(email);
+    setPassword(pass);
+  };
+
+  const submit = async () => {
     if (!valid || loading) return;
     setLoading(true);
-    setTimeout(() => {
-      router.push(student ? "/ogrenci" : "/akademisyen");
-    }, 900);
+    setError(null);
+    try {
+      const logged = await login({
+        email: identifier.trim(),
+        password,
+        role,
+      });
+      onClose();
+      const getHref = ROLE_HOME_HREF[logged.role];
+      if (getHref) router.replace(getHref(logged));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Giriş başarısız");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -128,7 +177,9 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
             {student ? "Öğrenci Portalı" : "Akademisyen Portalı"}
           </Text>
           <Text style={styles.sheetSub}>
-            {student ? "Öğrenci numaranız ile giriş yapın" : "Kurumsal e-posta ile giriş yapın"}
+            {student
+              ? "Öğrenci no veya e-posta ile giriş yapın"
+              : "Kurumsal e-posta ile giriş yapın"}
           </Text>
         </View>
       </View>
@@ -136,11 +187,11 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
       <View style={{ gap: 12, marginTop: 20 }}>
         <Field
           icon={student ? UserRound : Mail}
-          label={student ? "Öğrenci No" : "Kurumsal E-Posta"}
-          placeholder={student ? "2026123456" : "ad.soyad@kocaeli.edu.tr"}
+          label={student ? "Öğrenci No / E-Posta" : "Kurumsal E-Posta"}
+          placeholder={student ? "190101044" : "ad.soyad@kocaeli.edu.tr"}
           value={identifier}
           onChange={setIdentifier}
-          keyboardType={student ? "number-pad" : "email-address"}
+          keyboardType={student ? "default" : "email-address"}
         />
         <Field
           icon={Lock}
@@ -161,6 +212,18 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
         />
       </View>
 
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      {DEMO_ACCOUNTS[role].map((account) => (
+        <Pressable
+          key={account.email}
+          onPress={() => fillDemo(account.email, account.pass)}
+          style={styles.demoBtnGroup}
+        >
+          <Text style={styles.demoBtnText}>{account.label}</Text>
+        </Pressable>
+      ))}
+
       <View style={styles.rowBetween}>
         <Pressable
           onPress={() => setRemember((v) => !v)}
@@ -169,7 +232,6 @@ function LoginForm({ role, onBack }: { role: Role; onBack: () => void }) {
           <View style={[styles.checkbox, remember && styles.checkboxOn]} />
           <Text style={styles.remember}>Beni Hatırla</Text>
         </Pressable>
-        <Text style={styles.forgot}>Şifremi Unuttum?</Text>
       </View>
 
       <Pressable
@@ -322,15 +384,35 @@ const styles = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   remember: { fontSize: 12, fontWeight: "500", color: colors.secondaryForeground },
-  forgot: { fontSize: 12, fontWeight: "600", color: colors.primary },
   submit: {
     marginTop: 16,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: landingColors.primary,
+    borderRadius: 14,
+    paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
   submitText: { color: colors.white, fontSize: 14, fontWeight: "700" },
+  errorText: {
+    marginTop: 12,
+    fontSize: 13,
+    color: "#DC2626",
+    fontWeight: "600",
+  },
+  demoBtn: {
+    marginTop: 12,
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+  },
+  demoBtnGroup: {
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+  },
+  demoBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.clinical,
+    textDecorationLine: "underline",
+  },
 });
