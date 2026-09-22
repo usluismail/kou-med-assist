@@ -5,6 +5,30 @@
  * Gerçek ÖBS entegrasyonunda sadece base URL değişir.
  */
 
+const fs = require("fs");
+const path = require("path");
+
+/** tip.kocaeli.edu.tr scrape → mock-server/data/faculty-directory-live.json */
+function loadFacultyDirectoryLive() {
+  try {
+    const p = path.join(__dirname, "../data/faculty-directory-live.json");
+    const json = JSON.parse(fs.readFileSync(p, "utf8"));
+    const members = Array.isArray(json?.members) ? json.members : [];
+    return members.map((m) => ({
+      id: m.id,
+      name: m.name,
+      title: m.title,
+      department: m.department,
+      office: m.office ?? null,
+      email: m.email ?? null,
+      phone: null, // scrape’te telefon yok (santral)
+      role: m.role === "chair" || m.role === "dean" || m.role === "advisor" ? m.role : "faculty",
+    }));
+  } catch {
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────
 // AKADEMİSYENLER / DANIŞMANLAR
 // ─────────────────────────────────────────────────────────
@@ -1147,6 +1171,7 @@ const hospitalPlaces = [
     name: "Acil Triyaj",
     block: "Acil Blok",
     floor: "Zemin",
+    category: "acil",
     hint: "Ana acil girişi · 7/24",
     tags: ["acil", "triyaj", "ambulans"],
   },
@@ -1155,6 +1180,7 @@ const hospitalPlaces = [
     name: "Kardiyoloji Polikliniği",
     block: "B Blok",
     floor: "2. Kat",
+    category: "poliklinik",
     hint: "Asansör B2 · Poliklinik koridoru",
     tags: ["kardiyoloji", "poliklinik"],
   },
@@ -1163,6 +1189,7 @@ const hospitalPlaces = [
     name: "Pediatri Polikliniği",
     block: "C Blok",
     floor: "1. Kat",
+    category: "poliklinik",
     hint: "Çocuk poliklinikleri girişi",
     tags: ["pediatri", "çocuk"],
   },
@@ -1171,6 +1198,7 @@ const hospitalPlaces = [
     name: "Amfi 1",
     block: "Morfoloji",
     floor: "Zemin",
+    category: "amfi",
     hint: "Ana amfi · 280 kişilik",
     tags: ["ders", "amfi", "morfoloji"],
   },
@@ -1179,6 +1207,7 @@ const hospitalPlaces = [
     name: "Amfi 3",
     block: "Morfoloji",
     floor: "1. Kat",
+    category: "amfi",
     hint: "Klinik vaka sunumları",
     tags: ["amfi", "vaka"],
   },
@@ -1187,6 +1216,7 @@ const hospitalPlaces = [
     name: "Anatomi Laboratuvarı",
     block: "Morfoloji",
     floor: "Bodrum",
+    category: "lab",
     hint: "Kadavra salonu · önlük zorunlu",
     tags: ["anatomi", "lab"],
   },
@@ -1195,6 +1225,7 @@ const hospitalPlaces = [
     name: "Histoloji Laboratuvarı",
     block: "Morfoloji",
     floor: "1. Kat",
+    category: "lab",
     hint: "Mikroskop salonu",
     tags: ["histoloji", "lab"],
   },
@@ -1203,6 +1234,7 @@ const hospitalPlaces = [
     name: "Dekanlık",
     block: "İdari Blok",
     floor: "2. Kat",
+    category: "idari",
     hint: "Öğrenci işleri aynı koridorda",
     tags: ["dekanlık", "idari"],
   },
@@ -1211,6 +1243,7 @@ const hospitalPlaces = [
     name: "Öğrenci İşleri",
     block: "İdari Blok",
     floor: "1. Kat",
+    category: "idari",
     hint: "Belge · mazeret · kayıt",
     tags: ["öğrenci işleri", "belge"],
   },
@@ -1219,6 +1252,7 @@ const hospitalPlaces = [
     name: "Genel Cerrahi Servisi",
     block: "A Blok",
     floor: "4. Kat",
+    category: "servis",
     hint: "Yatan hasta · intörn nöbet",
     tags: ["cerrahi", "servis"],
   },
@@ -1227,6 +1261,7 @@ const hospitalPlaces = [
     name: "Dahiliye Servisi",
     block: "A Blok",
     floor: "3. Kat",
+    category: "servis",
     hint: "Yatan hasta koridoru",
     tags: ["dahiliye", "servis"],
   },
@@ -1235,6 +1270,7 @@ const hospitalPlaces = [
     name: "Konferans Salonu",
     block: "Morfoloji",
     floor: "2. Kat",
+    category: "amfi",
     hint: "Söyleşi ve akademik toplantılar",
     tags: ["konferans", "söyleşi"],
   },
@@ -1242,8 +1278,9 @@ const hospitalPlaces = [
 
 // ─────────────────────────────────────────────────────────
 // AKADEMİK KADRO DİZİNİ (giriş öncesi)
+// Kaynak: node scripts/scrape-tip-kadro.mjs → faculty-directory-live.json
 // ─────────────────────────────────────────────────────────
-const facultyDirectory = [
+const facultyDirectoryFallback = [
   {
     id: "fd-1",
     name: "Prof. Dr. Alparslan Kuş",
@@ -1251,80 +1288,16 @@ const facultyDirectory = [
     department: "Dekanlık",
     office: "İdari Blok · 2. Kat",
     email: "dekan@kocaeli.edu.tr",
-    phone: "+90 262 303 75 75",
+    phone: null,
     role: "dean",
   },
-  {
-    id: "fd-2",
-    name: "Prof. Dr. Fatma Şahin",
-    title: "Prof. Dr.",
-    department: "Anatomi Anabilim Dalı",
-    office: "B Blok · 214",
-    email: "fatma.sahin@kocaeli.edu.tr",
-    phone: "+90 262 303 72 00",
-    role: "chair",
-  },
-  {
-    id: "fd-3",
-    name: "Doç. Dr. Kemal Demir",
-    title: "Doç. Dr.",
-    department: "Fizyoloji Anabilim Dalı",
-    office: "A Blok · 118",
-    email: "kemal.demir@kocaeli.edu.tr",
-    phone: "+90 262 303 72 10",
-    role: "chair",
-  },
-  {
-    id: "fd-4",
-    name: "Doç. Dr. Ayşe Kaya",
-    title: "Doç. Dr.",
-    department: "Pediatri Anabilim Dalı",
-    office: "C Blok · 210",
-    email: "ayse.kaya@kocaeli.edu.tr",
-    phone: "+90 262 303 73 20",
-    role: "faculty",
-  },
-  {
-    id: "fd-5",
-    name: "Prof. Dr. Hasan Arslan",
-    title: "Prof. Dr.",
-    department: "Dahiliye / Kardiyoloji",
-    office: "B Blok · 305",
-    email: "hasan.arslan@kocaeli.edu.tr",
-    phone: "+90 262 303 74 10",
-    role: "chair",
-  },
-  {
-    id: "fd-6",
-    name: "Dr. Öğr. Üyesi Ali Can",
-    title: "Dr. Öğr. Üyesi",
-    department: "Genel Cerrahi Anabilim Dalı",
-    office: "A Blok · 412",
-    email: "ali.can@kocaeli.edu.tr",
-    phone: null,
-    role: "faculty",
-  },
-  {
-    id: "fd-7",
-    name: "Doç. Dr. Neslihan Kurt",
-    title: "Doç. Dr.",
-    department: "Kadın Hastalıkları ve Doğum",
-    office: "C Blok · 118",
-    email: "neslihan.kurt@kocaeli.edu.tr",
-    phone: "+90 262 303 73 50",
-    role: "faculty",
-  },
-  {
-    id: "fd-8",
-    name: "Dr. Öğr. Üyesi Selin Çelik",
-    title: "Dr. Öğr. Üyesi",
-    department: "Tıbbi Biyokimya",
-    office: "Morfoloji · 106",
-    email: "selin.celik@kocaeli.edu.tr",
-    phone: null,
-    role: "advisor",
-  },
 ];
+
+const facultyDirectoryLive = loadFacultyDirectoryLive();
+const facultyDirectory =
+  facultyDirectoryLive && facultyDirectoryLive.length > 0
+    ? facultyDirectoryLive
+    : facultyDirectoryFallback;
 
 // ─────────────────────────────────────────────────────────
 // ARKADAŞLAR (nöbet takas için)

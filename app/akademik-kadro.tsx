@@ -4,7 +4,6 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,13 +11,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Mail, MapPin, Phone, Search } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
+import { Copy, Mail, MapPin, Search } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PortalSubHeader } from "@/components/landing/PortalSubHeader";
+import { useToast } from "@/components/Toast";
 import { fetchFacultyDirectory } from "@/lib/api";
 import { usePublicResource } from "@/lib/api/hooks/core";
 import type { FacultyStaffMember } from "@/lib/api/types";
 import { landingColors } from "@/lib/theme";
+
+type RoleFilter = "all" | FacultyStaffMember["role"];
 
 const FALLBACK: FacultyStaffMember[] = [
   {
@@ -28,28 +31,8 @@ const FALLBACK: FacultyStaffMember[] = [
     department: "Dekanlık",
     office: "İdari Blok · 2. Kat",
     email: "dekan@kocaeli.edu.tr",
-    phone: "+90 262 303 75 75",
+    phone: null,
     role: "dean",
-  },
-  {
-    id: "fd-2",
-    name: "Prof. Dr. Fatma Şahin",
-    title: "Prof. Dr.",
-    department: "Anatomi Anabilim Dalı",
-    office: "B Blok · 214",
-    email: "fatma.sahin@kocaeli.edu.tr",
-    phone: "+90 262 303 72 00",
-    role: "chair",
-  },
-  {
-    id: "fd-4",
-    name: "Doç. Dr. Ayşe Kaya",
-    title: "Doç. Dr.",
-    department: "Pediatri Anabilim Dalı",
-    office: "C Blok · 210",
-    email: "ayse.kaya@kocaeli.edu.tr",
-    phone: "+90 262 303 73 20",
-    role: "faculty",
   },
 ];
 
@@ -60,26 +43,72 @@ const ROLE_LABEL: Record<FacultyStaffMember["role"], string> = {
   advisor: "Danışman",
 };
 
+const FILTER_CHIPS: { key: RoleFilter; label: string }[] = [
+  { key: "all", label: "Tümü" },
+  { key: "chair", label: "Başkan" },
+  { key: "faculty", label: "Öğretim Üyesi" },
+  { key: "dean", label: "Dekan" },
+  { key: "advisor", label: "Danışman" },
+];
+
+/** Türkçe güvenli küçük harf + aksan sadeleştirme (İ/I/ı, Ş→s …) */
+function foldTr(s: string) {
+  return s
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/ş/g, "s")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c");
+}
+
+function matchesQuery(member: FacultyStaffMember, query: string) {
+  const q = foldTr(query.trim());
+  if (!q) return true;
+  const hay = foldTr(
+    `${member.name} ${member.department} ${member.title} ${member.email ?? ""}`
+  );
+  // Kelime kelime: "elif yaka" → her parça geçmeli (ardışık tam cümle şart değil)
+  return q.split(/\s+/).every((token) => token.length > 0 && hay.includes(token));
+}
+
 export default function AkademikKadroScreen() {
   const insets = useSafeAreaInsets();
+  const toast = useToast();
   const { data, loading } = usePublicResource(fetchFacultyDirectory);
   const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
 
   const items = data?.length ? data : FALLBACK;
 
+  const availableFilters = useMemo(() => {
+    const present = new Set(items.map((m) => m.role));
+    return FILTER_CHIPS.filter((c) => c.key === "all" || present.has(c.key as FacultyStaffMember["role"]));
+  }, [items]);
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
     return items.filter((m) => {
-      const hay = `${m.name} ${m.department} ${m.title}`.toLowerCase();
-      return hay.includes(q);
+      if (roleFilter !== "all" && m.role !== roleFilter) return false;
+      return matchesQuery(m, query);
     });
-  }, [items, query]);
+  }, [items, query, roleFilter]);
 
   const departments = useMemo(() => {
     const set = new Set(filtered.map((m) => m.department));
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "tr"));
   }, [filtered]);
+
+  async function copyEmail(email: string) {
+    try {
+      await Clipboard.setStringAsync(email);
+      toast.show("E-posta kopyalandı", "success");
+    } catch {
+      toast.show("Kopyalanamadı", "error");
+    }
+  }
 
   return (
     <View style={styles.root}>
@@ -90,15 +119,41 @@ export default function AkademikKadroScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="İsim veya anabilim dalı ara"
+          placeholder="İsim, anabilim dalı veya e-posta"
           placeholderTextColor={landingColors.textMuted}
           style={styles.searchInput}
+          autoCorrect={false}
+          autoCapitalize="none"
+          clearButtonMode="while-editing"
         />
       </View>
 
       <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chips}
+        style={styles.chipsScroll}
+      >
+        {availableFilters.map((chip) => {
+          const active = roleFilter === chip.key;
+          return (
+            <Pressable
+              key={chip.key}
+              onPress={() => setRoleFilter(chip.key)}
+              style={[styles.chip, active && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {chip.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <ScrollView
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {loading && !data ? (
           <ActivityIndicator color={landingColors.primary} style={{ marginTop: 24 }} />
@@ -136,26 +191,20 @@ export default function AkademikKadroScreen() {
                 </View>
               ) : null}
 
-              <View style={styles.actions}>
-                {member.email ? (
-                  <Pressable
-                    style={styles.actionBtn}
-                    onPress={() => Linking.openURL(`mailto:${member.email}`)}
-                  >
-                    <Mail size={14} color={landingColors.primary} strokeWidth={2.3} />
-                    <Text style={styles.actionText}>E-posta</Text>
-                  </Pressable>
-                ) : null}
-                {member.phone ? (
-                  <Pressable
-                    style={styles.actionBtn}
-                    onPress={() => Linking.openURL(`tel:${member.phone}`)}
-                  >
-                    <Phone size={14} color={landingColors.primary} strokeWidth={2.3} />
-                    <Text style={styles.actionText}>Ara</Text>
-                  </Pressable>
-                ) : null}
-              </View>
+              {member.email ? (
+                <Pressable
+                  style={styles.emailRow}
+                  onPress={() => copyEmail(member.email!)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${member.email} kopyala`}
+                >
+                  <Mail size={14} color={landingColors.primary} strokeWidth={2.3} />
+                  <Text style={styles.emailText} numberOfLines={1}>
+                    {member.email}
+                  </Text>
+                  <Copy size={14} color={landingColors.textMuted} strokeWidth={2.2} />
+                </Pressable>
+              ) : null}
             </View>
           );
         })}
@@ -172,7 +221,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: landingColors.bg },
   searchWrap: {
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -184,6 +233,37 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   searchInput: { flex: 1, fontSize: 14, color: landingColors.text, padding: 0 },
+  chipsScroll: { flexGrow: 0, marginBottom: 10, maxHeight: 44 },
+  chips: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    gap: 8,
+    alignItems: "center",
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    minHeight: 36,
+    borderRadius: 999,
+    backgroundColor: landingColors.white,
+    borderWidth: 1,
+    borderColor: landingColors.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipActive: {
+    backgroundColor: landingColors.primary,
+    borderColor: landingColors.primary,
+  },
+  chipText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700",
+    color: landingColors.textSub,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+  chipTextActive: { color: "#FFFFFF" },
   list: { paddingHorizontal: 16, gap: 10 },
   count: {
     fontSize: 12,
@@ -229,17 +309,21 @@ const styles = StyleSheet.create({
   dept: { fontSize: 12, color: landingColors.textSub, fontWeight: "500" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   metaText: { fontSize: 12, fontWeight: "600", color: landingColors.textSub },
-  actions: { flexDirection: "row", gap: 8 },
-  actionBtn: {
+  emailRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 8,
     backgroundColor: landingColors.primaryGlow,
-    borderRadius: 999,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
-  actionText: { fontSize: 12, fontWeight: "700", color: landingColors.primary },
+  emailText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: landingColors.primary,
+  },
   empty: {
     textAlign: "center",
     marginTop: 32,

@@ -144,7 +144,7 @@ export default function HastaneScreen() {
         ) : null}
 
         {filtered.map((place) => {
-          const meta = CAT_META[place.category];
+          const meta = CAT_META[place.category] ?? CAT_META.servis;
           return (
             <View key={place.id} style={styles.card}>
               <View style={[styles.catPill, { backgroundColor: meta.bg }]}>
